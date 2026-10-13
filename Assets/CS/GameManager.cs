@@ -1,65 +1,145 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
 
 public class GameManager : NetworkBehaviour
 {
-    [SerializeField] private float timeLimit = 3f; // ¡¶«—Ω√∞£
+    [SerializeField] private float timeLimit = 3f;
+    [SerializeField] private int startingLives = 3;
+    [SerializeField] private Transform tableTransform;
 
     private List<ulong> turnOrder = new List<ulong>();
     private int currentTurnIndex = 0;
-    private float roundElapsedTime = 0f;
     private float pressStartTime;
     private bool timerRunning = false;
+    private float roundElapsedTime = 0f;
+    private Dictionary<ulong, int> lives = new Dictionary<ulong, int>();
+    private TableSpotManager tableSpotManager;
+    private int localLives = -1;
+
+    public int LocalLives => localLives;
+
+    public override void OnNetworkSpawn()
+    {
+        if (IsServer) tableSpotManager = FindAnyObjectByType<TableSpotManager>();
+    }
+
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void StartRoundServerRpc()
+    {
+        foreach (var id in NetworkManager.Singleton.ConnectedClientsIds)
+        {
+            if (!lives.ContainsKey(id))
+                lives[id] = startingLives;
+
+            SetLocalLivesRpc(id, lives[id], RpcTarget.Single(id, RpcTargetUse.Temp));
+        }
+        StartNewRound();
+    }
+
+    [Rpc(SendTo.SpecifiedInParams)]
+    private void SetLocalLivesRpc(ulong playerId, int value, RpcParams rpcParams = default)
+    {
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.LocalClientId == playerId)
+            localLives = value;
+    }
 
     private void StartNewRound()
     {
-        turnOrder = new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds);
-        for (int i = 0; i < turnOrder.Count; i++) // º¯º≠ ∑£¥˝ º≈«√
+        turnOrder = new List<ulong>();
+        foreach (var kvp in lives)
+            if (kvp.Value > 0) turnOrder.Add(kvp.Key);
+
+        for (int i = 0; i < turnOrder.Count; i++)
         {
             int rand = Random.Range(i, turnOrder.Count);
             (turnOrder[i], turnOrder[rand]) = (turnOrder[rand], turnOrder[i]);
         }
         currentTurnIndex = 0;
         roundElapsedTime = 0f;
-        Debug.Log($"[º≠πˆ] ªı ∂ÛøÓµÂ Ω√¿€, º¯º≠: {string.Join(",", turnOrder)}");
+        Debug.Log($"[ÏÑúÎ≤Ñ] ÏÉà ÎùºÏö¥Îìú ÏãúÏûë, ÏàúÏÑú: {string.Join(",", turnOrder)}");
+        FindAnyObjectByType<LogManager>().BroadcastLog($"New round started ‚Äî Player {turnOrder[currentTurnIndex]}'s turn");
+        MoveTableToCurrentPlayer();
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    public void StartRoundServerRpc()
-    {
-        StartNewRound();
-    }
-
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void PressButtonServerRpc(ulong senderId)
     {
         if (turnOrder[currentTurnIndex] != senderId)
         {
-            Debug.Log($"[º≠πˆ] {senderId}¿« ¬˜∑ ∞° æ∆¥‘, π´Ω√");
+            Debug.Log($"[ÏÑúÎ≤Ñ] {senderId}Ïùò Ï∞®Î°ÄÍ∞Ä ÏïÑÎãò, Î¨¥Ïãú");
             return;
         }
 
-        if (!timerRunning) // √π π¯¬∞ ¥©∏ß
+        if (!timerRunning)
         {
             pressStartTime = Time.time;
             timerRunning = true;
-            Debug.Log($"[º≠πˆ] {senderId} ≈∏¿Ã∏” Ω√¿€");
+            Debug.Log($"[ÏÑúÎ≤Ñ] {senderId} ÌÉÄÏù¥Î®∏ ÏãúÏûë");
         }
-        else // µŒ π¯¬∞ ¥©∏ß
+        else
         {
-            float segment = Time.time - pressStartTime; // ¿Ãπ¯ «√∑π¿ÃæÓ ±∏∞£∏∏¿« Ω√∞£
-            roundElapsedTime += segment; // ∂ÛøÓµÂ ¥©¿˚ø° ¥ı«‘ (√ ±‚»≠ æ» «‘)
+            float segment = Time.time - pressStartTime;
+            roundElapsedTime += segment;
             timerRunning = false;
-            Debug.Log($"[º≠πˆ] {senderId} ¡§¡ˆ, ¿Ãπ¯ ±∏∞£={segment:F2}√ , ¥©¿˚={roundElapsedTime:F2}√ ");
+            Debug.Log($"[ÏÑúÎ≤Ñ] {senderId} Ï†ïÏßÄ, Ïù¥Î≤à Íµ¨Í∞Ñ={segment:F2}Ï¥à, ÎàÑÏ†Å={roundElapsedTime:F2}Ï¥à");
 
-            if (roundElapsedTime > timeLimit) // ∞≥¿Œ Ω√∞£¿Ã æ∆¥œ∂Û ¥©¿˚ Ω√∞£∞˙ ∫Ò±≥
-                Debug.Log($"[º≠πˆ] {senderId} √ ∞˙! (∏Òº˚ ¬˜∞®¿∫ ¥Ÿ¿Ω ¥‹∞Ëø°º≠ ±∏«ˆ)");
+            if (roundElapsedTime > timeLimit)
+            {
+                lives[senderId]--;
+                SetLocalLivesRpc(senderId, lives[senderId], RpcTarget.Single(senderId, RpcTargetUse.Temp));
+                Debug.Log($"[ÏÑúÎ≤Ñ] {senderId} Ï¥àÍ≥º! ÎÇ®ÏùÄ Î™©Ïà®: {lives[senderId]}");
+                FindAnyObjectByType<LogManager>().BroadcastLog($"Player {senderId} lost a life (remaining: {lives[senderId]})");
+                if (lives[senderId] <= 0)
+                {
+                    Debug.Log($"[ÏÑúÎ≤Ñ] {senderId} ÌÉàÎùΩ");
+                    FindAnyObjectByType<LogManager>().BroadcastLog($"Player {senderId} eliminated");
+                }
+                    
+
+                int aliveCount = 0;
+                ulong lastAlive = 0;
+                foreach (var kvp in lives)
+                    if (kvp.Value > 0) { aliveCount++; lastAlive = kvp.Key; }
+
+                if (aliveCount <= 1)
+                {
+                    Debug.Log($"[ÏÑúÎ≤Ñ] Í≤åÏûÑ Ï¢ÖÎ£å! ÏäπÏûê: {lastAlive}");
+                    FindAnyObjectByType<LogManager>().BroadcastLog($"Game over! Winner: Player {lastAlive}");
+                }
+                    
+                else
+                    StartNewRound();
+            }
             else
             {
                 currentTurnIndex = (currentTurnIndex + 1) % turnOrder.Count;
-                Debug.Log($"[º≠πˆ] ¥Ÿ¿Ω ¬˜∑ : {turnOrder[currentTurnIndex]}");
+                Debug.Log($"[ÏÑúÎ≤Ñ] Îã§Ïùå Ï∞®Î°Ä: {turnOrder[currentTurnIndex]}");
+                FindAnyObjectByType<LogManager>().BroadcastLog($"Player {turnOrder[currentTurnIndex]}'s turn");
+                MoveTableToCurrentPlayer();
             }
         }
     }
+
+    private void MoveTableToCurrentPlayer()
+    {
+        if (tableSpotManager == null || turnOrder.Count == 0) return;
+        ulong currentPlayer = turnOrder[currentTurnIndex];
+        Transform spot = tableSpotManager.spots[currentPlayer];
+        tableTransform.position = spot.position;
+        tableTransform.rotation = spot.rotation;
+    }
+
+    public void AdjustTimeLimit(float delta)
+    {
+        timeLimit = Mathf.Clamp(timeLimit + delta, 1f, 10f);
+    }
+
+    public void AdjustStartingLives(int delta)
+    {
+        startingLives = Mathf.Clamp(startingLives + delta, 1, 9);
+    }
+
+    public float GetTimeLimit() => timeLimit;
+    public int GetStartingLives() => startingLives;
 }
