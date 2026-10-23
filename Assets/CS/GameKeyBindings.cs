@@ -13,20 +13,22 @@ public enum PlayerAction
     Push,
     Gesture,
     Kick,
-    Respawn
+    Respawn,
+    Reload
 }
 
 /// <summary>Local, persistent controls shared by the player and settings UI.</summary>
 public static class GameKeyBindings
 {
-    public const int ActionCount = 10;
+    public const int ActionCount = 11;
     private const string PreferencePrefix = "PlayerBinding_";
+    private const string RespawnBindingMigrationKey = "RespawnBindingGMigration";
     private static readonly Key[] DefaultKeys =
     {
         Key.W, Key.S, Key.A, Key.D, Key.LeftShift, Key.Space,
-        Key.None, Key.None, Key.F, Key.R
+        Key.None, Key.None, Key.F, Key.G, Key.R
     };
-    private static readonly int[] DefaultMouseButtons = { 0, 0, 0, 0, 0, 0, 1, 2, 0, 0 };
+    private static readonly int[] DefaultMouseButtons = { 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0 };
     private static readonly Key[] keys = new Key[ActionCount];
     private static readonly int[] mouseButtons = new int[ActionCount];
     private static bool loaded;
@@ -66,18 +68,18 @@ public static class GameKeyBindings
     {
         Load();
         int index = (int)action;
-        if (mouseButtons[index] == 1) return "MOUSE LEFT";
-        if (mouseButtons[index] == 2) return "MOUSE RIGHT";
-        if (mouseButtons[index] == 3) return "MOUSE MIDDLE";
+        if (mouseButtons[index] == 1) return GameLocalization.T("MOUSE LEFT");
+        if (mouseButtons[index] == 2) return GameLocalization.T("MOUSE RIGHT");
+        if (mouseButtons[index] == 3) return GameLocalization.T("MOUSE MIDDLE");
         return keys[index] switch
         {
-            Key.LeftShift => "SHIFT",
-            Key.RightShift => "RIGHT SHIFT",
-            Key.Space => "SPACE",
-            Key.UpArrow => "UP",
-            Key.DownArrow => "DOWN",
-            Key.LeftArrow => "LEFT",
-            Key.RightArrow => "RIGHT",
+            Key.LeftShift => GameLocalization.T("SHIFT"),
+            Key.RightShift => GameLocalization.T("RIGHT SHIFT"),
+            Key.Space => GameLocalization.T("SPACE"),
+            Key.UpArrow => GameLocalization.T("UP"),
+            Key.DownArrow => GameLocalization.T("DOWN"),
+            Key.LeftArrow => GameLocalization.T("LEFT"),
+            Key.RightArrow => GameLocalization.T("RIGHT"),
             _ => keys[index].ToString().ToUpperInvariant()
         };
     }
@@ -144,6 +146,18 @@ public static class GameKeyBindings
                 keys[i] = key;
                 mouseButtons[i] = 0;
             }
+        }
+        // Existing players may have the old default R saved as their respawn key.
+        if (PlayerPrefs.GetInt(RespawnBindingMigrationKey, 0) == 0)
+        {
+            int respawn = (int)PlayerAction.Respawn;
+            if (keys[respawn] == Key.R && mouseButtons[respawn] == 0)
+            {
+                keys[respawn] = Key.G;
+                Save(PlayerAction.Respawn);
+            }
+            PlayerPrefs.SetInt(RespawnBindingMigrationKey, 1);
+            PlayerPrefs.Save();
         }
     }
 

@@ -21,9 +21,11 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField] private float boulderKnockbackDuration = 0.3f;
     [SerializeField] private float boulderKnockbackDeceleration = 8f;
     private const float BoulderContactAccelerationMultiplier = 0.25f;
+    private const float BoulderSideGripAcceleration = 12f;
     private const float KickCooldown = 0.8f;
     private const float KickDuration = 0.38f;
     private const float KickPlayerSpeed = 4.6f;
+    private const float KickCharacterMultiplier = 1.8f;
     private const float KickBoulderImpulse = 11f;
 
     private readonly NetworkVariable<Vector2> requestedMove = new(
@@ -46,10 +48,16 @@ public class PlayerMovement : NetworkBehaviour
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Owner);
 
+    private readonly NetworkVariable<int> avatarCosmetics = new(0);
+    private readonly NetworkVariable<uint> torsoAccessoryColor = new(0);
+    private readonly NetworkVariable<uint> headAccessoryColor = new(0);
+    private readonly RequestBudget cosmeticBudget = new(4f, 8f);
+    private PlayerCosmeticVisual cosmeticVisual;
+
     private readonly NetworkVariable<FixedString64Bytes> playerName = new(
         new FixedString64Bytes("PLAYER"),
         NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Owner);
+        NetworkVariableWritePermission.Server);
 
     private readonly NetworkVariable<FixedString64Bytes> persistentPlayerId = new(
         new FixedString64Bytes(),
@@ -58,8 +66,10 @@ public class PlayerMovement : NetworkBehaviour
 
     private Rigidbody body;
     private CapsuleCollider capsule;
+    private PhysicsMaterial movementMaterial;
     private PlayerLook playerLook;
     private float boulderContactUntil = -1f;
+    private Rigidbody contactedBoulder;
     private readonly Collider[] kickHits = new Collider[16];
     private Transform kickLegPivot;
     private AudioSource kickSoundSource;
@@ -67,18 +77,35 @@ public class PlayerMovement : NetworkBehaviour
     private float kickAnimationStarted = -10f;
     private float nextKickInputTime;
     private float nextKickServerTime;
+    private float nextRespawnServerTime;
+    private float validatedYaw;
+    private readonly RequestBudget kickBudget = new(12f, 24f);
+    private readonly RequestBudget jumpBudget = new(20f, 40f);
+    private readonly RequestBudget respawnBudget = new(4f, 8f);
 
-    public string DisplayName => playerName.Value.ToString();
+    public string DisplayName => PlayerProfile.Normalize(playerName.Value.ToString());
     public string PersistentPlayerId => persistentPlayerId.Value.ToString();
     public Color32 AvatarColor => PlayerColorPalette.Unpack(avatarColor.Value);
     private bool jumpRequested;
     private float nextJumpTime;
     private float boulderKnockbackUntil;
+    private float kickKnockbackUntil;
 
     private void Awake()
     {
         body = GetComponent<Rigidbody>();
         capsule = GetComponent<CapsuleCollider>();
+        // Movement is controlled by acceleration and explicit stopping; surface
+        // friction must not hold the capsule against walls or carry it up a ball.
+        movementMaterial = new PhysicsMaterial("Player No Wall Grip")
+        {
+            staticFriction = 0f,
+            dynamicFriction = 0f,
+            bounciness = 0f,
+            frictionCombine = PhysicsMaterialCombine.Minimum,
+            bounceCombine = PhysicsMaterialCombine.Minimum
+        };
+        capsule.sharedMaterial = movementMaterial;
         playerLook = GetComponent<PlayerLook>();
         CreateKickLeg();
         kickSound = Resources.Load<AudioClip>("Sfx/Melee1");
@@ -104,6 +131,15 @@ public class PlayerMovement : NetworkBehaviour
         body.linearDamping = 0.8f;
 
         avatarColor.OnValueChanged += OnAvatarColorChanged;
+        var cosmeticRoot = new GameObject("PlayerCosmeticsVisual");
+        cosmeticRoot.transform.SetParent(transform, false);
+        cosmeticVisual = cosmeticRoot.AddComponent<PlayerCosmeticVisual>();
+        cosmeticVisual.Build();
+        ApplyAccessoryAppearance();
+        cosmeticRoot.SetActive(!IsOwner);
+        avatarCosmetics.OnValueChanged += OnCosmeticsChanged;
+        torsoAccessoryColor.OnValueChanged += OnAccessoryColorChanged;
+        headAccessoryColor.OnValueChanged += OnAccessoryColorChanged;
         if (IsOwner)
             RefreshOwnerProfile();
         ApplyAvatarColor(avatarColor.Value);
@@ -112,6 +148,28 @@ public class PlayerMovement : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         avatarColor.OnValueChanged -= OnAvatarColorChanged;
+        avatarCosmetics.OnValueChanged -= OnCosmeticsChanged;
+        torsoAccessoryColor.OnValueChanged -= OnAccessoryColorChanged;
+        headAccessoryColor.OnValueChanged -= OnAccessoryColorChanged;
+        if (cosmeticVisual != null) Destroy(cosmeticVisual.gameObject);
+    }
+
+    private void OnCosmeticsChanged(int previous, int current) => ApplyAccessoryAppearance();
+    private void OnAccessoryColorChanged(uint previous,uint current) => ApplyAccessoryAppearance();
+    private void ApplyAccessoryAppearance() => cosmeticVisual?.Apply(avatarCosmetics.Value,torsoAccessoryColor.Value,headAccessoryColor.Value);
+
+    public void RefreshOwnerCosmetics()
+    {
+        if (IsOwner && IsSpawned) SubmitCosmeticsServerRpc(PlayerCosmetics.Selected,PlayerCosmetics.CustomColor(0),PlayerCosmetics.CustomColor(1));
+    }
+
+    [ServerRpc]
+    private void SubmitCosmeticsServerRpc(int selection,uint bodyTint,uint headTint)
+    {
+        if (!cosmeticBudget.Allow())return;
+        avatarCosmetics.Value = PlayerCosmetics.Normalize(selection);
+        torsoAccessoryColor.Value=bodyTint==0?0:bodyTint|0xff000000u;
+        headAccessoryColor.Value=headTint==0?0:headTint|0xff000000u;
     }
 
     private void OnAvatarColorChanged(uint previous, uint current)
@@ -124,10 +182,18 @@ public class PlayerMovement : NetworkBehaviour
         if (!IsOwner || !IsSpawned)
             return;
 
-        playerName.Value = new FixedString64Bytes(PlayerProfile.Name);
+        SubmitNameServerRpc(new FixedString64Bytes(PlayerProfile.Name));
+        RefreshOwnerCosmetics();
         persistentPlayerId.Value = new FixedString64Bytes(PlayerProfile.Id);
         avatarColor.Value = PlayerColorPalette.Pack(
             PlayerColorPalette.Colors[PlayerColorPalette.SelectedIndex]);
+    }
+
+    private readonly RequestBudget nameBudget = new(1f, 4f);
+    [ServerRpc]
+    private void SubmitNameServerRpc(FixedString64Bytes value)
+    {
+        if (nameBudget.Allow()) playerName.Value = new FixedString64Bytes(PlayerProfile.Normalize(value.ToString()));
     }
 
     public void RestoreOwnerView(float yaw, float pitch, uint color)
@@ -162,8 +228,12 @@ public class PlayerMovement : NetworkBehaviour
         Color color = PlayerColorPalette.Unpack(packed);
         var properties = new MaterialPropertyBlock();
         PlayerEyes eyes = GetComponent<PlayerEyes>();
+        PlayerHandgun handgun=GetComponent<PlayerHandgun>();
         foreach (MeshRenderer mesh in GetComponentsInChildren<MeshRenderer>(true))
         {
+            if(handgun!=null && handgun.ContainsWeapon(mesh.transform))continue;
+            if (cosmeticVisual != null && mesh.transform.IsChildOf(cosmeticVisual.transform))
+                continue;
             if (eyes != null && eyes.ContainsEye(mesh.transform))
                 continue;
             mesh.GetPropertyBlock(properties);
@@ -291,12 +361,12 @@ public class PlayerMovement : NetworkBehaviour
     [ServerRpc]
     private void RequestKickServerRpc()
     {
-        if (Time.time < nextKickServerTime || StageManager.Instance == null ||
+        if (!kickBudget.Allow() || !NetworkInputGuard.Playing || Time.time < nextKickServerTime || StageManager.Instance == null ||
             !StageManager.Instance.IsGameStarted || StageManager.Instance.RoomTimerFinished)
             return;
 
         nextKickServerTime = Time.time + KickCooldown;
-        Vector3 direction = Quaternion.Euler(0f, requestedYaw.Value, 0f) * Vector3.forward;
+        Vector3 direction = Quaternion.Euler(0f, validatedYaw, 0f) * Vector3.forward;
         PlayKickAnimationRpc();
         StartCoroutine(ResolveKickAfterWindup(direction));
     }
@@ -323,9 +393,11 @@ public class PlayerMovement : NetworkBehaviour
         {
             Collider candidate = kickHits[i];
             Rigidbody candidateBody = candidate != null ? candidate.attachedRigidbody : null;
-            if (candidateBody == null || candidateBody == body || candidateBody.isKinematic ||
+            BoulderMonster monster = candidateBody != null ? candidateBody.GetComponent<BoulderMonster>() : null;
+            if (candidateBody == null || candidateBody == body ||
+                (candidateBody.isKinematic && monster == null) || (monster != null && monster.IsDead) ||
                 (candidateBody.GetComponent<PlayerMovement>() == null &&
-                 candidateBody.GetComponent<BoulderSlopeDrag>() == null))
+                 candidateBody.GetComponent<BoulderSlopeDrag>() == null && monster == null))
                 continue;
 
             Vector3 toTarget = candidateBody.worldCenterOfMass - body.worldCenterOfMass;
@@ -346,6 +418,8 @@ public class PlayerMovement : NetworkBehaviour
         PlayerMovement otherPlayer = target.GetComponent<PlayerMovement>();
         if (otherPlayer != null)
             otherPlayer.ApplyKickKnockback(direction);
+        else if (target.TryGetComponent(out BoulderMonster kickedMonster))
+            kickedMonster.ApplyKickKnockback(direction, KickPlayerSpeed * KickCharacterMultiplier);
         else
             target.AddForce(direction * KickBoulderImpulse + Vector3.up * 2.5f,
                 ForceMode.Impulse);
@@ -359,16 +433,17 @@ public class PlayerMovement : NetworkBehaviour
         Vector3 velocity = body.linearVelocity;
         Vector3 horizontal = new Vector3(velocity.x, 0f, velocity.z);
         float forwardSpeed = Vector3.Dot(horizontal, direction);
-        horizontal += direction * Mathf.Max(0f, KickPlayerSpeed - forwardSpeed);
+        horizontal += direction * Mathf.Max(0f, KickPlayerSpeed * KickCharacterMultiplier - forwardSpeed);
         body.linearVelocity = new Vector3(horizontal.x, Mathf.Max(velocity.y, 1.25f), horizontal.z);
         body.WakeUp();
         boulderKnockbackUntil = Time.time + 0.4f;
+        kickKnockbackUntil = Time.time + 0.4f;
     }
 
     [ServerRpc]
     private void RequestJumpServerRpc()
     {
-        jumpRequested = true;
+        if (jumpBudget.Allow() && NetworkInputGuard.Playing) jumpRequested = true;
     }
 
     private void FixedUpdate()
@@ -400,15 +475,22 @@ public class PlayerMovement : NetworkBehaviour
             }
         }
 
-        body.MoveRotation(Quaternion.Euler(0f, requestedYaw.Value, 0f));
+        if (NetworkInputGuard.Finite(requestedYaw.Value)) validatedYaw = Mathf.Repeat(requestedYaw.Value, 360f);
+        body.MoveRotation(Quaternion.Euler(0f, validatedYaw, 0f));
 
-        Vector3 direction = new Vector3(requestedMove.Value.x, 0f, requestedMove.Value.y);
+        Vector2 safeMove = NetworkInputGuard.Finite(requestedMove.Value) ? Vector2.ClampMagnitude(requestedMove.Value, 1f) : Vector2.zero;
+        Vector3 direction = new Vector3(safeMove.x, 0f, safeMove.y);
         if (direction.sqrMagnitude > 1f)
             direction.Normalize();
 
         float speedMultiplier = requestedSprint.Value ? sprintMultiplier : 1f;
         bool touchingBoulder = Time.time < boulderContactUntil;
-        if (direction.sqrMagnitude > 0f)
+        bool steadyPush = touchingBoulder && IsPressingIntoBoulder(contactedBoulder, direction) &&
+            IsGrounded() && Time.time >= nextJumpTime && Time.time >= kickKnockbackUntil &&
+            Time.time >= boulderKnockbackUntil;
+        if (steadyPush)
+            StabilizeBoulderPush(direction, speedMultiplier);
+        if (direction.sqrMagnitude > 0f && Time.time >= kickKnockbackUntil)
             body.AddForce(direction * (moveAcceleration * speedMultiplier *
                 (touchingBoulder ? BoulderContactAccelerationMultiplier : 1f)),
                 ForceMode.Acceleration);
@@ -428,6 +510,8 @@ public class PlayerMovement : NetworkBehaviour
 
         Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
         float speedLimit = maxHorizontalSpeed * speedMultiplier;
+        if (Time.time < kickKnockbackUntil)
+            speedLimit = Mathf.Max(speedLimit, KickPlayerSpeed * KickCharacterMultiplier);
         if (Time.time < boulderKnockbackUntil)
             speedLimit += boulderKnockbackMaxSpeed;
         if (horizontalVelocity.sqrMagnitude > speedLimit * speedLimit)
@@ -453,14 +537,51 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (IsServer && collision.rigidbody != null &&
             collision.rigidbody.GetComponent<BoulderSlopeDrag>() != null)
+        {
             boulderContactUntil = -1f;
+            contactedBoulder = null;
+        }
     }
 
     private void RecordBoulderContact(Collision collision)
     {
         if (IsServer && collision.rigidbody != null &&
             collision.rigidbody.GetComponent<BoulderSlopeDrag>() != null)
+        {
             boulderContactUntil = Time.time + Time.fixedDeltaTime * 1.5f;
+            contactedBoulder = collision.rigidbody;
+            // Do not turn walking into climbing along the sphere. Preserve a
+            // deliberate jump and normal uphill movement on the actual course.
+            if (Time.time >= nextJumpTime && !IsGrounded() && body.linearVelocity.y > 0f)
+            {
+                Vector3 velocity = body.linearVelocity;
+                velocity.y = 0f;
+                body.linearVelocity = velocity;
+            }
+        }
+    }
+
+    private bool IsPressingIntoBoulder(Rigidbody stone, Vector3 direction)
+    {
+        if (stone == null || direction.sqrMagnitude < 0.01f) return false;
+        Vector3 toward = stone.worldCenterOfMass - body.worldCenterOfMass;
+        toward.y = 0f;
+        return toward.sqrMagnitude > 0.001f && Vector3.Dot(direction.normalized, toward.normalized) > 0.35f;
+    }
+
+    private void StabilizeBoulderPush(Vector3 direction, float speedMultiplier)
+    {
+        Vector3 toward = contactedBoulder.worldCenterOfMass - body.worldCenterOfMass;
+        toward.y = 0f;
+        toward.Normalize();
+        Vector3 sideways = Vector3.Cross(Vector3.up, toward);
+        Vector3 velocity = body.linearVelocity;
+        // Correct unwanted sideways sliding; deliberate strafing still has its own target speed.
+        Vector3 relativeVelocity = velocity - contactedBoulder.linearVelocity;
+        float actual = Vector3.Dot(relativeVelocity, sideways);
+        float desired = Vector3.Dot(direction, sideways) * maxHorizontalSpeed * speedMultiplier;
+        float corrected = Mathf.MoveTowards(actual, desired, BoulderSideGripAcceleration * Time.fixedDeltaTime);
+        body.linearVelocity = velocity + sideways * (corrected - actual);
     }
 
     private void TryApplyBoulderKnockback(Collision collision)
@@ -470,6 +591,17 @@ public class PlayerMovement : NetworkBehaviour
 
         Rigidbody otherBody = collision.rigidbody;
         if (otherBody == null || otherBody.GetComponent<BoulderSlopeDrag>() == null)
+            return;
+
+        Vector2 move = NetworkInputGuard.Finite(requestedMove.Value)
+            ? Vector2.ClampMagnitude(requestedMove.Value, 1f) : Vector2.zero;
+        Vector3 moveDirection = new Vector3(move.x, 0f, move.y);
+        Vector3 towardPlayer = body.worldCenterOfMass - otherBody.worldCenterOfMass;
+        towardPlayer.y = 0f;
+        // Resting contact must not repeatedly knock a player away while they push.
+        // A stone rolling toward them at speed retains the existing impact response.
+        if (IsPressingIntoBoulder(otherBody, moveDirection) && IsGrounded() &&
+            Vector3.Dot(otherBody.linearVelocity, towardPlayer.normalized) < 1.5f)
             return;
 
         float impact = collision.impulse.magnitude;
@@ -506,7 +638,14 @@ public class PlayerMovement : NetworkBehaviour
         return Physics.Raycast(origin, Vector3.down, out RaycastHit ground,
                    halfHeight + 0.25f, ~0, QueryTriggerInteraction.Ignore)
                && ground.collider.attachedRigidbody != body
+               && ground.collider.GetComponentInParent<BoulderSlopeDrag>() == null
                && Vector3.Dot(ground.normal, Vector3.up) > 0.5f;
+    }
+
+    public override void OnDestroy()
+    {
+        if (movementMaterial != null) Destroy(movementMaterial);
+        base.OnDestroy();
     }
 
 }

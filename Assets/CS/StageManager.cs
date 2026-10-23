@@ -27,6 +27,8 @@ public class StageManager : NetworkBehaviour
         -1d, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     private readonly NetworkVariable<double> roomFinishedAt = new(
         -1d, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private readonly NetworkVariable<double> savedElapsedSeconds = new(
+        0d, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     private readonly NetworkVariable<int> clearPlayerCount = new(
         0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     private readonly NetworkVariable<double> obstacleTimeOffset = new(
@@ -38,6 +40,45 @@ public class StageManager : NetworkBehaviour
     private SavedRoom pendingResume;
     private string activeSaveId;
     private TutorialCourse tutorialCourse;
+    private float nextAutomaticSaveAt;
+    private const float AutomaticSaveInterval = 3f;
+    private NetworkList<double> completedStageSeconds;
+    private readonly NetworkVariable<double> sectionStartedElapsed = new(0d);
+    public double CurrentStageElapsedSeconds => IsTutorialStage ? 0d :
+        System.Math.Max(0d, RoomElapsedSeconds-sectionStartedElapsed.Value);
+    public double GetStageClearSeconds(int section) => section>=1 && section<=completedStageSeconds.Count
+        ? completedStageSeconds[section-1] : -1d;
+    public int RecordedStageCount
+    {
+        get { int count=0;foreach(double time in completedStageSeconds)if(time>=0d)count++;return count; }
+    }
+    public double AverageStagePoints
+    {
+        get
+        {
+            int count=0,total=0;
+            foreach(double time in completedStageSeconds)if(time>=0d){count++;total+=ClearGradeRules.Points(time);}
+            return count>0?total/(double)count:0d;
+        }
+    }
+    private void ResetStageTimes()
+    {
+        completedStageSeconds.Clear();
+        for(int i=0;i<8;i++)completedStageSeconds.Add(-1d);
+        sectionStartedElapsed.Value=0d;
+    }
+    private void RecordStageTime(int section)
+    {
+        if(section<1||section>8||completedStageSeconds.Count<8)return;
+        if(completedStageSeconds[section-1]<0d)completedStageSeconds[section-1]=CurrentStageElapsedSeconds;
+        sectionStartedElapsed.Value=RoomElapsedSeconds;
+    }
+    private double[] CaptureStageTimes()
+    {
+        double[] result=new double[completedStageSeconds.Count];
+        for(int i=0;i<result.Length;i++)result[i]=completedStageSeconds[i];
+        return result;
+    }
 
     // Offsets applied to the authored scenes when the first six sections were joined.
     private static readonly Vector3[] SectionOffsets =
@@ -48,11 +89,11 @@ public class StageManager : NetworkBehaviour
         new(62.97f, 21.833215f, 182.671013f),
         new(-103.03f, 21.323215f, 195.691013f),
         new(-220.03f, 60.451741f, 354.691013f),
-        Vector3.zero
+        Vector3.zero, Vector3.zero
     };
 
     public static Vector3 GetSectionOffset(int section) =>
-        section >= 1 && section <= 7 ? SectionOffsets[section] : Vector3.zero;
+        section >= 1 && section <= 8 ? SectionOffsets[section] : Vector3.zero;
 
     private static readonly Vector3[] CheckpointBoulderPositions =
     {
@@ -63,7 +104,8 @@ public class StageManager : NetworkBehaviour
         new(38f, 65.5f, 162.671013f),
         new(46.97f, 23f, 190.691013f),
         new(49.97f, 62.5f, 335.691013f),
-        new(49.97f, 71f, 456.5f)
+        new(49.97f, 71f, 456.5f),
+        new(63.97f, 81.5f, 658f)
     };
 
     private static readonly Vector3[] CheckpointPlayerPositions =
@@ -75,7 +117,8 @@ public class StageManager : NetworkBehaviour
         new(38f, 64.5f, 159.671013f),
         new(46.97f, 21.7f, 187.691013f),
         new(49.97f, 61.5f, 332.691013f),
-        new(49.97f, 69.4f, 452.5f)
+        new(49.97f, 69.4f, 452.5f),
+        new(63.97f, 80f, 655f)
     };
 
     private static readonly Vector3[] SectionBoulderStarts =
@@ -87,7 +130,8 @@ public class StageManager : NetworkBehaviour
         new(38f, 65.5f, 172.671013f),
         new(46.97f, 23f, 193.691013f),
         new(49.97f, 62.5f, 341.691013f),
-        new(49.97f, 71f, 460f)
+        new(49.97f, 71f, 460f),
+        new(63.97f, 81.5f, 658f)
     };
 
     private static readonly Vector3[] SectionPlayerStarts =
@@ -99,7 +143,8 @@ public class StageManager : NetworkBehaviour
         new(38f, 64.5f, 169.671013f),
         new(46.97f, 22f, 190.691013f),
         new(49.97f, 61.5f, 338.691013f),
-        new(49.97f, 69.4f, 456f)
+        new(49.97f, 69.4f, 456f),
+        new(63.97f, 80f, 655f)
     };
 
     public bool IsGameStarted => IsSpawned && gameStarted.Value;
@@ -123,12 +168,14 @@ public class StageManager : NetworkBehaviour
             double end = RoomTimerFinished
                 ? roomFinishedAt.Value
                 : NetworkManager.ServerTime.Time;
-            return System.Math.Max(0d, end - roomStartedAt.Value);
+            return savedElapsedSeconds.Value + System.Math.Max(0d, end - roomStartedAt.Value);
         }
     }
 
     private void Awake()
     {
+        completedStageSeconds = new NetworkList<double>();
+        Application.wantsToQuit += SaveBeforeApplicationQuit;
         Instance = this;
         if (fullCourseSections == null)
             fullCourseSections = GameObject.Find("FullCourseSections");
@@ -138,21 +185,25 @@ public class StageManager : NetworkBehaviour
             gameObject.AddComponent<SkyCloudBackdrop>();
     }
 
-    private void OnDestroy()
+    public override void OnDestroy()
     {
+        Application.wantsToQuit -= SaveBeforeApplicationQuit;
         if (Instance == this)
             Instance = null;
+        base.OnDestroy();
     }
 
     public override void OnNetworkSpawn()
     {
         if (IsServer)
         {
+            ResetStageTimes();
             courseReady = false;
             loadingCourse = false;
             courseCleared = false;
             roomFinishedAt.Value = -1d;
             roomStartedAt.Value = -1d;
+            savedElapsedSeconds.Value = 0d;
             clearPlayerCount.Value = 0;
             obstacleTimeOffset.Value = 0d;
             gameStarted.Value = false;
@@ -162,7 +213,10 @@ public class StageManager : NetworkBehaviour
         currentStage.OnValueChanged += OnStageChanged;
         NetworkManager.SceneManager.OnLoadEventCompleted += OnLoadEventCompleted;
         if (IsServer)
+        {
             NetworkManager.OnClientConnectedCallback += OnClientConnected;
+            NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
+        }
         ApplyStage(currentStage.Value);
     }
 
@@ -170,29 +224,22 @@ public class StageManager : NetworkBehaviour
     {
         currentStage.OnValueChanged -= OnStageChanged;
         if (IsServer && NetworkManager != null)
+        {
             NetworkManager.OnClientConnectedCallback -= OnClientConnected;
+            NetworkManager.OnClientDisconnectCallback -= OnClientDisconnected;
+        }
         if (NetworkManager != null && NetworkManager.SceneManager != null)
             NetworkManager.SceneManager.OnLoadEventCompleted -= OnLoadEventCompleted;
     }
 
     private void Update()
     {
-        if (!IsGameStarted || !Debug.isDebugBuild || Keyboard.current == null ||
-            !Keyboard.current.f6Key.wasPressedThisFrame)
-            return;
-
-        if (IsServer)
-            SkipToNextStage();
-        else
-            RequestSkipStageRpc();
-    }
-
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    private void RequestSkipStageRpc()
-    {
-        if (!IsGameStarted || !Debug.isDebugBuild)
-            return;
-        SkipToNextStage();
+        if (IsServer && IsGameStarted && !IsTutorialStage && !RoomTimerFinished &&
+            Time.unscaledTime >= nextAutomaticSaveAt)
+        {
+            nextAutomaticSaveAt = Time.unscaledTime + AutomaticSaveInterval;
+            SaveElapsedBeforeExit();
+        }
     }
 
     public void BeginGame()
@@ -201,6 +248,7 @@ public class StageManager : NetworkBehaviour
             return;
 
         bool tutorial = playTutorial.Value;
+        ResetStageTimes();
         obstacleTimeOffset.Value = 0d;
         clearPlayerCount.Value = NetworkManager.ConnectedClientsIds.Count;
         if (tutorial)
@@ -237,11 +285,18 @@ public class StageManager : NetworkBehaviour
     {
         if (!IsServer || !IsTutorialStage)
             return;
+        TutorialCombatLesson lesson = FindFirstObjectByType<TutorialCombatLesson>();
+        if (lesson != null && !lesson.CanFinish) return;
+        MonsterSpawnZone.CompleteActiveEncounters();
         currentStage.Value = 1;
         ApplyStage(1);
         BoulderSlopeDrag boulder = FindFirstObjectByType<BoulderSlopeDrag>();
         if (boulder != null)
+        {
             Teleport(boulder.gameObject, new Vector3(0f, 5f, 4f));
+            BoulderHealth health = boulder.GetComponent<BoulderHealth>();
+            if (health != null) health.RestoreHealth(health.MaximumHealth);
+        }
         PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
         System.Array.Sort(players, (a, b) => a.OwnerClientId.CompareTo(b.OwnerClientId));
         for (int i = 0; i < players.Length; i++)
@@ -260,6 +315,13 @@ public class StageManager : NetworkBehaviour
         }
         else
             PrepareCourse();
+    }
+
+    public void RespawnBoulder(BoulderHealth boulder)
+    {
+        if (!IsServer || !IsGameStarted || RoomTimerFinished || boulder == null) return;
+        if (fallResetZone != null)
+            fallResetZone.RespawnBoulder(boulder.GetComponent<BoulderSlopeDrag>());
     }
 
     private IEnumerator PrepareCourseAfterTutorial()
@@ -340,11 +402,16 @@ public class StageManager : NetworkBehaviour
             elapsedSeconds = RoomElapsedSeconds,
             obstacleTime = ObstacleTime,
             boulder = CaptureBody(boulder.gameObject),
+            boulderHealth = boulder.GetComponent<BoulderHealth>()?.CurrentHealth ?? 5,
+            monsterEncounters = MonsterSpawnZone.CaptureAll(),
+            cannonControls = Stage8CannonControls.CaptureCurrent(),
+            stageClearSeconds = CaptureStageTimes(),
+            currentStageElapsedSeconds = CurrentStageElapsedSeconds,
             players = savedPlayers
         };
         if (currentStage.Value == 5)
         {
-            Stage5BallLauncher launcher = FindFirstObjectByType<Stage5BallLauncher>();
+            Stage5BallLauncher launcher = System.Array.Find(FindObjectsByType<Stage5BallLauncher>(FindObjectsSortMode.None), cannon => cannon.ActiveSection == 5);
             room.nextCannonShotIn = launcher != null ? launcher.SecondsUntilNextShot : 2d;
             Stage5Projectile[] flying = FindObjectsByType<Stage5Projectile>(FindObjectsSortMode.None);
             room.projectiles = new SavedProjectileState[flying.Length];
@@ -352,19 +419,54 @@ public class StageManager : NetworkBehaviour
                 room.projectiles[i] = new SavedProjectileState
                 {
                     body = CaptureBody(flying[i].gameObject),
+                    health = flying[i].CurrentHealth,
                     remainingLifetime = flying[i].RemainingLifetime
                 };
         }
         if (!SavedRoomStore.Save(room))
             return false;
         activeSaveId = room.id;
+        nextAutomaticSaveAt = Time.unscaledTime + AutomaticSaveInterval;
         return true;
     }
+
+    public void SaveElapsedBeforeExit()
+    {
+        if (!IsServer || !IsGameStarted || IsTutorialStage || RoomTimerFinished) return;
+        if (TrySaveRoom()) return;
+        SavedRoom room = System.Array.Find(SavedRoomStore.LoadAll(), saved => saved.id == activeSaveId);
+        if (room == null)
+        {
+            TrySaveRoom();
+            return;
+        }
+        // A departing teammate may already be despawned. Keep the last complete
+        // roster snapshot in that case, while preserving the latest elapsed time.
+        room.elapsedSeconds = RoomElapsedSeconds;
+        if(room.stage==currentStage.Value)
+        {
+            room.currentStageElapsedSeconds=CurrentStageElapsedSeconds;
+            room.stageClearSeconds=CaptureStageTimes();
+        }
+        SavedRoomStore.Save(room);
+    }
+
+    private void OnApplicationQuit() => SaveElapsedBeforeExit();
+    private bool SaveBeforeApplicationQuit()
+    {
+        SaveElapsedBeforeExit();
+        return true;
+    }
+    private void OnApplicationPause(bool paused)
+    {
+        if (paused) SaveElapsedBeforeExit();
+    }
+    private void OnClientDisconnected(ulong clientId) => SaveElapsedBeforeExit();
 
     public bool BeginSavedGame(SavedRoom room)
     {
         if (!IsServer || gameStarted.Value || pendingResume != null || room == null ||
-            room.stage < 1 || room.stage > 7 || room.players == null ||
+            room.stage < 1 || room.stage > 8 || room.players == null ||
             room.players.Length != NetworkManager.ConnectedClientsIds.Count)
             return false;
 
@@ -402,6 +504,7 @@ public class StageManager : NetworkBehaviour
         else
         {
             ApplyStage(currentStage.Value);
+            savedElapsedSeconds.Value = 0d;
             roomStartedAt.Value = NetworkManager.ServerTime.Time;
             gameStarted.Value = true;
         }
@@ -454,7 +557,20 @@ public class StageManager : NetworkBehaviour
 
         BoulderSlopeDrag boulder = FindFirstObjectByType<BoulderSlopeDrag>();
         if (boulder != null)
-            RestoreBody(boulder.gameObject, room.boulder);
+        {
+            // A checkpoint advances the section before the boulder has crossed the
+            // connecting path. Resume at that section's safe reset position instead
+            // of restoring the previous section's finish line (and saved momentum).
+            var checkpointBody = new SavedBodyState
+            {
+                position = CheckpointBoulderPositions[room.stage],
+                rotation = room.boulder != null ? room.boulder.rotation : Quaternion.identity,
+                velocity = Vector3.zero,
+                angularVelocity = Vector3.zero
+            };
+            RestoreBody(boulder.gameObject, checkpointBody);
+            boulder.GetComponent<BoulderHealth>()?.RestoreHealth(room.boulderHealth);
+        }
         foreach (PlayerMovement player in FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None))
         {
             foreach (SavedPlayerState savedPlayer in room.players)
@@ -473,7 +589,7 @@ public class StageManager : NetworkBehaviour
         obstacleTimeOffset.Value = room.obstacleTime - NetworkManager.ServerTime.Time;
         if (room.stage == 5)
         {
-            Stage5BallLauncher launcher = FindFirstObjectByType<Stage5BallLauncher>();
+            Stage5BallLauncher launcher = System.Array.Find(FindObjectsByType<Stage5BallLauncher>(FindObjectsSortMode.None), cannon => cannon.ActiveSection == 5);
             if (launcher != null)
             {
                 launcher.RestoreShotDelay(room.nextCannonShotIn);
@@ -482,10 +598,18 @@ public class StageManager : NetworkBehaviour
                         launcher.RestoreProjectile(projectile);
             }
         }
-        roomStartedAt.Value = NetworkManager.ServerTime.Time -
-            System.Math.Max(0d, room.elapsedSeconds);
+        savedElapsedSeconds.Value = System.Math.Max(0d, room.elapsedSeconds);
+        roomStartedAt.Value = NetworkManager.ServerTime.Time;
+        ResetStageTimes();
+        if(room.stageClearSeconds!=null)
+            for(int i=0;i<System.Math.Min(8,room.stageClearSeconds.Length);i++)
+                if(i<room.stage-1 && room.stageClearSeconds[i]>=0d)completedStageSeconds[i]=room.stageClearSeconds[i];
+        sectionStartedElapsed.Value = System.Math.Max(0d,room.elapsedSeconds-
+            System.Math.Max(0d,room.currentStageElapsedSeconds));
         roomFinishedAt.Value = -1d;
         gameStarted.Value = true;
+        MonsterSpawnZone.RestoreAll(room.monsterEncounters);
+        Stage8CannonControls.RestoreCurrent(room.cannonControls);
         pendingResume = null;
     }
 
@@ -512,12 +636,12 @@ public class StageManager : NetworkBehaviour
             CompleteTutorial();
             return;
         }
-        if (currentStage.Value == 7)
+        if (currentStage.Value == 8)
         {
-            CompleteStageSeven();
+            CompleteStageEight();
             return;
         }
-        if (!courseReady || currentStage.Value < 1 || currentStage.Value > 6)
+        if (!courseReady || currentStage.Value < 1 || currentStage.Value > 7)
             return;
 
         int nextSection = currentStage.Value + 1;
@@ -568,6 +692,8 @@ public class StageManager : NetworkBehaviour
             currentStage.Value != completedSection)
             return;
 
+        RecordStageTime(completedSection);
+        MonsterSpawnZone.CompleteActiveEncounters();
         currentStage.Value = completedSection + 1;
         ApplyStage(currentStage.Value);
         SaveReachedCheckpoint();
@@ -575,14 +701,26 @@ public class StageManager : NetworkBehaviour
 
     public void CompleteStageSeven()
     {
+        ReachCheckpoint(7);
+    }
+
+    public void CompleteStageEight()
+    {
         if (!IsServer || !IsGameStarted || !courseReady ||
-            currentStage.Value != 7 || courseCleared)
+            currentStage.Value != 8 || courseCleared)
             return;
 
+        RecordStageTime(8);
+        MonsterSpawnZone.CompleteActiveEncounters();
         courseCleared = true;
         roomFinishedAt.Value = NetworkManager.ServerTime.Time;
+        if (!string.IsNullOrEmpty(activeSaveId))
+        {
+            if (SavedRoomStore.Delete(activeSaveId)) activeSaveId = null;
+            else Debug.LogWarning("Could not remove the completed room save: " + activeSaveId);
+        }
         long elapsed = (long)System.Math.Floor(RoomElapsedSeconds);
-        Debug.Log($"Stage 7 complete. Room time: {elapsed / 3600:00}:{elapsed / 60 % 60:00}:{elapsed % 60:00}.");
+        Debug.Log($"Stage 8 complete. Room time: {elapsed / 3600:00}:{elapsed / 60 % 60:00}:{elapsed % 60:00}.");
     }
 
     public void ReturnToWaitingRoom()
@@ -620,8 +758,10 @@ public class StageManager : NetworkBehaviour
             fallResetZone.SetRespawnPositions(new Vector3(0f, 5f, -2f), new Vector3(0f, 5f, 4f));
 
         courseCleared = false;
+        ResetStageTimes();
         clearPlayerCount.Value = 0;
         roomStartedAt.Value = -1d;
+        savedElapsedSeconds.Value = 0d;
         roomFinishedAt.Value = -1d;
         gameStarted.Value = false;
         obstacleTimeOffset.Value = 0d;
@@ -690,7 +830,7 @@ public class StageManager : NetworkBehaviour
                 Vector3 position = currentStage.Value == 0
                     ? (tutorialCourse != null ? tutorialCourse.PlayerSpawn : Vector3.zero) +
                         new Vector3((clientId % 4) * 2.5f, 0f, 0f)
-                    : CheckpointPlayerPositions[Mathf.Clamp(currentStage.Value, 1, 7)] +
+                    : CheckpointPlayerPositions[Mathf.Clamp(currentStage.Value, 1, 8)] +
                         new Vector3((clientId % 4) * 2.5f, 0f, 0f);
                 Teleport(client.PlayerObject.gameObject, position);
                 yield break;
@@ -717,7 +857,7 @@ public class StageManager : NetworkBehaviour
         if (fullCourseSections != null)
             fullCourseSections.SetActive(stage != 0);
 
-        if (IsServer && stage >= 1 && stage <= 7 && fallResetZone != null)
+        if (IsServer && stage >= 1 && stage <= 8 && fallResetZone != null)
             fallResetZone.SetRespawnPositions(
                 CheckpointPlayerPositions[stage], CheckpointBoulderPositions[stage]);
     }

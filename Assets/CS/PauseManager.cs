@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
@@ -51,15 +52,25 @@ public class PauseManager : MonoBehaviour
 
     public void RestartGame()
     {
+        StageManager.Instance?.SaveElapsedBeforeExit();
         IsPaused = false;
-        
-        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
-            NetworkManager.Singleton.Shutdown();
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        MenuManager menu = FindAnyObjectByType<MenuManager>();
+        if (menu != null) menu.LeaveRoom();
+        else StartCoroutine(ReturnToMainMenu());
+    }
+
+    private IEnumerator ReturnToMainMenu()
+    {
+        NetworkManager network = NetworkManager.Singleton;
+        if (network != null && network.IsListening) network.Shutdown();
+        while (network != null && network.ShutdownInProgress) yield return null;
+        Time.timeScale = 1f;
+        SceneManager.LoadScene("Stage1");
     }
 
     public void QuitGame()
     {
+        StageManager.Instance?.SaveElapsedBeforeExit();
         Application.Quit();
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;

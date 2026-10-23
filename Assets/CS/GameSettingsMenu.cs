@@ -39,6 +39,7 @@ public class GameSettingsMenu : MonoBehaviour
     private Text sensitivityValue;
     private Text fullscreenValue;
     private Text resolutionValue;
+    private Text languageValue;
     private readonly List<Vector2Int> availableResolutions = new();
 
     private static readonly Color PanelColor = new(0.12f, 0.13f, 0.16f, 0.98f);
@@ -48,10 +49,12 @@ public class GameSettingsMenu : MonoBehaviour
     {
         Instance = this;
         GameSettingsPreferences.Load();
+        GameLocalization.Changed += OnLanguageChanged;
     }
 
     private void OnDestroy()
     {
+        GameLocalization.Changed -= OnLanguageChanged;
         if (Instance == this)
             Instance = null;
     }
@@ -169,12 +172,22 @@ public class GameSettingsMenu : MonoBehaviour
         cardImage.color = PanelColor;
         cardImage.raycastTarget = false;
 
-        CreateText("SettingsTitle", card, "SETTINGS", new Vector2(0f, 242f),
+        CreateText("SettingsTitle", card, "SETTINGS", new Vector2(0f, 330f),
             new Vector2(430f, 52f), 38, Color.white);
         var divider = CreateRect("TitleDivider", card, new Vector2(0.5f, 0.5f),
-            new Vector2(0f, 200f), new Vector2(410f, 4f));
+            new Vector2(0f, 289f), new Vector2(410f, 4f));
         divider.gameObject.AddComponent<Image>().color = AccentColor;
         divider.GetComponent<Image>().raycastTarget = false;
+
+        CreateText("LanguageLabel", card, "LANGUAGE", new Vector2(-140f, 245f),
+            new Vector2(190f, 35f), 20, Color.white, TextAnchor.MiddleLeft);
+        var languageButton = CreateButton("LanguageButton", card, "한국어 / English",
+            new Vector2(0.5f, 0.5f), new Vector2(95f, 245f), new Vector2(220f, 56f),
+            () => GameLocalization.SetLanguage(!GameLocalization.Korean));
+        languageValue = languageButton.GetComponentInChildren<Text>();
+        languageValue.rectTransform.localScale = Vector3.one;
+        languageValue.fontSize = 24;
+        GameLocalization.Style(languageValue);
 
         CreateText("VolumeLabel", card, "MASTER VOLUME", new Vector2(-140f, 150f),
             new Vector2(190f, 35f), 20, Color.white, TextAnchor.MiddleLeft);
@@ -262,7 +275,7 @@ public class GameSettingsMenu : MonoBehaviour
         controlHintsToggle.onValueChanged.AddListener(value =>
         {
             GameSettingsPreferences.SetShowControlHints(value);
-            valueText.text = value ? "ON" : "OFF";
+            GameLocalization.Bind(valueText, value ? "ON" : "OFF");
         });
 
         Button keySettingsButton = CreateButton("OpenKeyBindingsButton", card, "KEY SETTINGS",
@@ -298,13 +311,13 @@ public class GameSettingsMenu : MonoBehaviour
         string[] names =
         {
             "MOVE FORWARD", "MOVE BACK", "MOVE LEFT", "MOVE RIGHT",
-            "SPRINT", "JUMP", "PUSH", "GESTURE", "KICK", "RESPAWN"
+            "SPRINT", "JUMP", "PUSH", "GESTURE", "KICK", "RESPAWN", "RELOAD"
         };
         for (int i = 0; i < GameKeyBindings.ActionCount; i++)
         {
-            int column = i / 5;
-            int row = i % 5;
-            float y = 180f - row * 70f;
+            int column = i / 6;
+            int row = i % 6;
+            float y = 180f - row * 62f;
             float labelX = column == 0 ? -325f : 90f;
             float buttonX = column == 0 ? -110f : 305f;
             PlayerAction action = (PlayerAction)i;
@@ -343,7 +356,7 @@ public class GameSettingsMenu : MonoBehaviour
         keyBindingsPanel.SetActive(true);
         keyBindingsPanel.transform.SetAsLastSibling();
         RefreshBindingLabels();
-        bindingStatus.text = "CLICK A CONTROL TO CHANGE IT";
+        GameLocalization.Bind(bindingStatus, "CLICK A CONTROL TO CHANGE IT");
     }
 
     private void CloseKeyBindings()
@@ -357,8 +370,8 @@ public class GameSettingsMenu : MonoBehaviour
     {
         waitingForBinding = action;
         captureStartFrame = Time.frameCount;
-        bindingStatus.text = "PRESS A KEY OR MOUSE BUTTON  /  ESC CANCELS";
-        bindingValues[(int)action].text = "PRESS KEY";
+        GameLocalization.Bind(bindingStatus, "PRESS A KEY OR MOUSE BUTTON  /  ESC CANCELS");
+        bindingValues[(int)action].text = GameLocalization.T("PRESS KEY");
         if (EventSystem.current != null)
             EventSystem.current.SetSelectedGameObject(null);
     }
@@ -368,7 +381,7 @@ public class GameSettingsMenu : MonoBehaviour
         if (!waitingForBinding.HasValue)
             return;
         waitingForBinding = null;
-        bindingStatus.text = "KEY CHANGE CANCELLED";
+        GameLocalization.Bind(bindingStatus, "KEY CHANGE CANCELLED");
         RefreshBindingLabels();
     }
 
@@ -405,12 +418,12 @@ public class GameSettingsMenu : MonoBehaviour
         PlayerAction action = waitingForBinding.Value;
         if (!GameKeyBindings.TryBind(action, key, mouseButton))
         {
-            bindingStatus.text = "THAT KEY IS RESERVED  /  PRESS ANOTHER";
+            GameLocalization.Bind(bindingStatus, "THAT KEY IS RESERVED  /  PRESS ANOTHER");
             return;
         }
         waitingForBinding = null;
         RefreshBindingLabels();
-        bindingStatus.text = "CONTROL UPDATED";
+        GameLocalization.Bind(bindingStatus, "CONTROL UPDATED");
     }
 
     private void ResetBindings()
@@ -418,18 +431,26 @@ public class GameSettingsMenu : MonoBehaviour
         waitingForBinding = null;
         GameKeyBindings.ResetDefaults();
         RefreshBindingLabels();
-        bindingStatus.text = "DEFAULT CONTROLS RESTORED";
+        GameLocalization.Bind(bindingStatus, "DEFAULT CONTROLS RESTORED");
     }
 
     private void RefreshBindingLabels()
     {
         for (int i = 0; i < bindingValues.Length; i++)
             if (bindingValues[i] != null)
-                bindingValues[i].text = GameKeyBindings.GetLabel((PlayerAction)i);
+                bindingValues[i].text = waitingForBinding == (PlayerAction)i ? GameLocalization.T("PRESS KEY") : GameKeyBindings.GetLabel((PlayerAction)i);
+    }
+
+    private void OnLanguageChanged()
+    {
+        if (overlay == null) return;
+        RefreshValues();
+        RefreshBindingLabels();
     }
 
     private void RefreshValues()
     {
+        if (languageValue != null) languageValue.text = GameLocalization.Korean ? "한국어" : "English";
         volumeSlider.SetValueWithoutNotify(GameSettingsPreferences.Volume);
         bgmVolumeSlider.SetValueWithoutNotify(GameSettingsPreferences.BgmVolume);
         sfxVolumeSlider.SetValueWithoutNotify(GameSettingsPreferences.SfxVolume);
@@ -438,10 +459,10 @@ public class GameSettingsMenu : MonoBehaviour
         bgmVolumeValue.text = Mathf.RoundToInt(GameSettingsPreferences.BgmVolume * 100f) + "%";
         sfxVolumeValue.text = Mathf.RoundToInt(GameSettingsPreferences.SfxVolume * 100f) + "%";
         sensitivityValue.text = GameSettingsPreferences.MouseSensitivity.ToString("F2");
-        fullscreenValue.text = GameSettingsPreferences.Fullscreen ? "ON" : "OFF";
+        GameLocalization.Bind(fullscreenValue, GameSettingsPreferences.Fullscreen ? "ON" : "OFF");
         controlHintsToggle.SetIsOnWithoutNotify(GameSettingsPreferences.ShowControlHints);
-        controlHintsToggle.GetComponentInChildren<Text>().text =
-            GameSettingsPreferences.ShowControlHints ? "ON" : "OFF";
+        GameLocalization.Bind(controlHintsToggle.GetComponentInChildren<Text>(),
+            GameSettingsPreferences.ShowControlHints ? "ON" : "OFF");
         RefreshResolutionOptions();
         resolutionValue.text = GameSettingsPreferences.ResolutionWidth + "x" +
             GameSettingsPreferences.ResolutionHeight;
@@ -565,6 +586,7 @@ public class GameSettingsMenu : MonoBehaviour
             labelText.verticalOverflow = buttonTemplateText.verticalOverflow;
             labelText.rectTransform.localScale = buttonTemplateText.rectTransform.localScale;
         }
+        GameLocalization.BindKnown(labelText, label);
         return button;
     }
 
@@ -578,6 +600,7 @@ public class GameSettingsMenu : MonoBehaviour
         text.fontSize = fontSize;
         text.fontStyle = FontStyle.Normal;
         text.text = content;
+        GameLocalization.BindKnown(text, content);
         text.color = color;
         text.alignment = alignment;
         text.raycastTarget = false;

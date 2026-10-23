@@ -20,6 +20,8 @@ public class BoulderSlopeDrag : NetworkBehaviour
     private Rigidbody body;
     private SphereCollider sphere;
     private int lastPlayerCount = -1;
+    private bool trackingStageFour;
+    private float lastStageFourSupportedHeight;
 
     private void Awake()
     {
@@ -48,6 +50,28 @@ public class BoulderSlopeDrag : NetworkBehaviour
         bool grounded = Physics.Raycast(
             transform.position, Vector3.down, out RaycastHit ground,
             radius + 0.5f, ~0, QueryTriggerInteraction.Ignore);
+        StageManager stage = StageManager.Instance;
+        bool guardActive = stage != null && stage.IsGameStarted &&
+            stage.CurrentSection == 4 && !stage.RoomTimerFinished;
+        if (guardActive)
+        {
+            if (!trackingStageFour)
+                lastStageFourSupportedHeight = body.position.y;
+            // The normal spiral continuously supports the stone. A free fall of
+            // ten metres skips a tier and must reset before it reaches the exit.
+            if (lastStageFourSupportedHeight - body.position.y > 10f)
+            {
+                BoulderHealth health = GetComponent<BoulderHealth>();
+                stage.RespawnBoulder(health);
+                health?.ResetAfterFall();
+                MonsterSpawnZone.ResetAllForRetry();
+                lastStageFourSupportedHeight = body.position.y;
+                trackingStageFour = false;
+                return;
+            }
+            if (grounded) lastStageFourSupportedHeight = body.position.y;
+        }
+        trackingStageFour = guardActive;
         bool onSlope = !grounded || Vector3.Angle(ground.normal, Vector3.up) >= minimumSlopeAngle;
 
         SetDamping(

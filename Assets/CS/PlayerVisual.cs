@@ -15,23 +15,30 @@ public class PlayerVisual : NetworkBehaviour
     [SerializeField] private Transform hand;
     private MeshRenderer[] handRenderers;
     private PlayerArm playerArm;
+    private PlayerHandgun handgun;
 
     public override void OnNetworkSpawn()
     {
+        if(hand==null)hand=transform.Find("Hand");
         if (visualRoot != null)
             visualRoot.SetActive(!IsOwner);
         if (hand != null)
             handRenderers = hand.GetComponentsInChildren<MeshRenderer>(true);
         playerArm = GetComponent<PlayerArm>();
+        handgun = GetComponent<PlayerHandgun>();
     }
 
     private void LateUpdate()
     {
         if (IsSpawned && handRenderers != null && playerArm != null)
         {
-            bool showHand = IsOwner || playerArm.IsPushing || playerArm.IsGesturing;
+            bool gunEquipped=handgun!=null && handgun.IsGunEquipped;
+            bool showHand = !gunEquipped && (IsOwner || playerArm.IsPushing || playerArm.IsGesturing);
             foreach (var renderer in handRenderers)
+            {
+                if(handgun!=null && renderer!=null && handgun.ContainsWeapon(renderer.transform))continue;
                 if (renderer != null) renderer.enabled = showHand;
+            }
         }
         if (!IsSpawned || IsOwner || shoulder == null || upperArm == null ||
             lowerArm == null || elbow == null || hand == null)

@@ -1,0 +1,169 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8075d37270fbd5d43a9e826ac5974970, type: 3}
+  m_Name: GameLocalizationAssets
+  m_EditorClassIdentifier: Assembly-CSharp::GameLocalizationAssets
+  uiFont: {fileID: 12800000, guid: 89fc553824d479a43907d5af3144c3b7, type: 3}
+  keys:
+  - Host
+  - Join
+  - Confirm
+  - Enter text...
+  - MAIN MENU
+  - Quit
+  - QUIT
+  - SETTINGS
+  - CONTINUE
+  - SAVE
+  - BACK
+  - CANCEL
+  - DELETE
+  - PREV
+  - NEXT
+  - WAITING ROOM
+  - ROOM CODE
+  - COPY
+  - COPIED
+  - PLAYERS
+  - PLAYER NAME
+  - PLAYER COLOR  /  {0}
+  - PLAY TUTORIAL
+  - START GAME
+  - CONTINUE GAME
+  - LEAVE ROOM
+  - CONNECTING...
+  - WAITING FOR PLAYERS
+  - WAITING FOR PLAYERS...
+  - WAITING FOR HOST
+  - ORIGINAL TEAM READY
+  - WAITING FOR ORIGINAL PLAYERS
+  - PREPARING RESOURCES  {0}%
+  - PLAYER {0}
+  - '{0} (HOST)'
+  - 'WAITING: {0}'
+  - ROOM FULL
+  - COULD NOT CREATE ROOM
+  - COULD NOT JOIN ROOM
+  - ENTER A 6-CHARACTER ROOM CODE
+  - COULD NOT CONTINUE ROOM
+  - LANGUAGE
+  - MASTER VOLUME
+  - BGM VOLUME
+  - SFX VOLUME
+  - MOUSE SPEED
+  - FULLSCREEN
+  - RESOLUTION
+  - CONTROL HINTS
+  - ON
+  - OFF
+  - KEY SETTINGS
+  - MOVE FORWARD
+  - MOVE BACK
+  - MOVE LEFT
+  - MOVE RIGHT
+  - SPRINT
+  - JUMP
+  - PUSH
+  - GESTURE
+  - KICK
+  - RESPAWN
+  - RELOAD
+  - CLICK A CONTROL TO CHANGE IT
+  - PRESS A KEY OR MOUSE BUTTON  /  ESC CANCELS
+  - PRESS KEY
+  - KEY CHANGE CANCELLED
+  - THAT KEY IS RESERVED  /  PRESS ANOTHER
+  - CONTROL UPDATED
+  - DEFAULT CONTROLS RESTORED
+  - RESET DEFAULTS
+  - MOUSE LEFT
+  - MOUSE RIGHT
+  - MOUSE MIDDLE
+  - SHIFT
+  - RIGHT SHIFT
+  - SPACE
+  - UP
+  - DOWN
+  - LEFT
+  - RIGHT
+  - CONTROLS
+  - FORWARD
+  - BACKWARD
+  - MOUSE  LOOK
+  - SAVED ROOMS
+  - DELETE SAVED ROOM?
+  - THIS CANNOT BE UNDONE
+  - NO SAVED ROOMS
+  - SELECT A ROOM TO CONTINUE
+  - SAVED ROOM
+  - '{0}  /  CHECKPOINT {1}  /  {2}
+
+    {3}'
+  - ROOM SELECTED
+  - COULD NOT SIGN IN
+  - THIS HOST IS NOT IN THAT ROOM
+  - ROOM EXCEEDS 4 PLAYERS
+  - COULD NOT DELETE ROOM
+  - ROOM DELETED
+  - ROOM SAVED
+  - COULD NOT SAVE ROOM
+  - FIST
+  - HANDGUN
+  - RELOADING
+  - BOULDER  {0} / {1}
+  - PLAY TIME
+  - FINISH TIME
+  - GOAL
+  - CLEAR
+  - DIFFICULTY
+  - DIFFICULTY  {0} PLAYER
+  - DIFFICULTY  {0} PLAYERS
+  - TIME
+  - RANK
+  - RANK  {0}
+  - AVERAGE
+  - AVERAGE  {0} / 5
+  - '  ({0}/8 RECORDED)'
+  - STAGE
+  - STAGE {0}
+  - POINTS
+  - Lives
+  - 'Lives: {0}'
+  - TimeLimit
+  - SHOOT THE RED TRAP  /  3 HITS
+  - TRAP DISABLED!  PUSH THE BOULDER FORWARD
+  - SHOOT THE MONSTER!  PROTECT THE BOULDER
+  - TRAINING COMPLETE!  PUSH THE BOULDER TO THE GOAL
+  - '2: EQUIP GUN     LEFT CLICK: FIRE     {0}: RELOAD'
+  - SHOOT
+  - BLUE
+  - RED
+  - ORANGE
+  - YELLOW
+  - GREEN
+  - CYAN
+  - PURPLE
+  - PINK
+  - CREDITS
+  - SOURCE
+  - SOURCE opens the original page
+  - 3D ASSETS  Goldmetal - QuarterView 3D Action BE5
+  - FONT  Netmarble - netmarbleB
+  - MENU  Grieg - Anitra's Dance / Musopen Symphony Orchestra
+  - Chopin - Nocturne No. 1, Op. 9 / Vadim Chaimovich
+  - Chopin - Prelude Op. 28 No. 17
+  - Bach - Goldberg Variations, Aria
+  - Beethoven - Pathetique Sonata, II. Adagio cantabile
+  - Bach - Prelude BWV 846 / Kimiko Ishizaka
+  - Chopin - Nocturne No. 2, Op. 9
+  - Satie - Gymnopedie No. 1 / Teknopazzo
+  - SFX  Goldmetal Studio - Undead Survivor / Win, Melee1

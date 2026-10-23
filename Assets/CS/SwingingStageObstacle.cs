@@ -63,4 +63,19 @@ public class SwingingStageObstacle : MonoBehaviour
             ? StageManager.Instance.ObstacleTime
             : Time.fixedTimeAsDouble;
     }
+
+    private void OnDrawGizmosSelected()
+    {
+        Transform weight=transform.Find("SwingWeight");
+        if(weight==null)return;
+        Quaternion basis=Application.isPlaying?restRotation:transform.rotation;
+        Gizmos.color=new Color(1f,.35f,.05f,.9f);
+        Vector3 previous=transform.position+basis*Quaternion.AngleAxis(-amplitudeDegrees,Vector3.forward)*weight.localPosition;
+        for(int i=1;i<=40;i++)
+        {
+            float angle=Mathf.Lerp(-amplitudeDegrees,amplitudeDegrees,i/40f);
+            Vector3 next=transform.position+basis*Quaternion.AngleAxis(angle,Vector3.forward)*weight.localPosition;
+            Gizmos.DrawLine(previous,next);previous=next;
+        }
+    }
 }

@@ -43,5 +43,7 @@ public class StageGoalTrigger : MonoBehaviour
             stageManager.CompleteStageSix();
         else if (stageToComplete == 7 && body.position.z >= finishZ)
             stageManager.CompleteStageSeven();
+        else if (stageToComplete == 8 && body.position.z >= finishZ)
+            stageManager.CompleteStageEight();
     }
 }

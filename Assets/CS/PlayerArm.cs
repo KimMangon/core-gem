@@ -26,6 +26,7 @@ public class PlayerArm : NetworkBehaviour
 
     private Vector3 restLocalPos;
     private bool hasPressedThisHold = false;
+    private PlayerHandgun handgun;
 
     public bool IsPushing => isPushing.Value;
     public bool IsGesturing => isGesturing.Value;
@@ -57,6 +58,9 @@ public class PlayerArm : NetworkBehaviour
         if (!IsOwner || Mouse.current == null || Keyboard.current == null)
             return;
 
+        if (handgun == null)
+            handgun = GetComponent<PlayerHandgun>();
+
         if (StageManager.Instance == null || !StageManager.Instance.IsGameStarted)
         {
             if (isPushing.Value)
@@ -68,6 +72,16 @@ public class PlayerArm : NetworkBehaviour
             return;
         }
 
+        if(handgun != null && handgun.IsGunEquipped)
+        {
+            if(isPushing.Value)isPushing.Value=false;
+            if(isGesturing.Value)isGesturing.Value=false;
+            // PlayerHandgun places the hand on the animated grip after the camera updates.
+            wasOnButton=false;
+            return;
+        }
+
+        handTransform.localRotation=Quaternion.Slerp(handTransform.localRotation,Quaternion.identity,Time.deltaTime*handMoveSpeed);
         if (Keyboard.current.altKey.isPressed || PauseManager.IsPaused)
         {
             if (isPushing.Value)

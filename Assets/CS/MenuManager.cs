@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using System.Threading.Tasks;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -32,6 +33,7 @@ public class MenuManager : MonoBehaviour
 
     private InputField playerNameInput;
     private Text menuErrorText;
+    private Image menuErrorBackground;
     private Text lobbyCodeText;
     private Text lobbyStatusText;
     private Text lobbyPlayersText;
@@ -53,6 +55,7 @@ public class MenuManager : MonoBehaviour
     private NetworkManager observedNetwork;
     private bool isConnecting;
     private bool clientSessionStarted;
+    private static string pendingRoomError;
     private bool returningToMenu;
     private int connectionGeneration;
     private float nextRosterRefresh;
@@ -60,6 +63,11 @@ public class MenuManager : MonoBehaviour
     private GameObject creditsOverlay;
     private Text clearDifficultyText;
     private Text clearTimeText;
+    private Text clearGradeText;
+    private Text clearAverageText;
+    private readonly Text[] stageResultTimes = new Text[8];
+    private readonly Text[] stageResultGrades = new Text[8];
+    private readonly Text[] stageResultPoints = new Text[8];
     private bool showingClear;
     private AudioSource clearSoundSource;
     private AudioClip clearSound;
@@ -76,14 +84,20 @@ public class MenuManager : MonoBehaviour
     private Button deleteSelectedButton;
     private GameObject deleteConfirmOverlay;
     private Button pauseSaveButton;
-    private Button pauseSaveExitButton;
     private Text pauseSaveFeedback;
+    private RoomResourcePreloader resourcePreloader;
+    private RoomLoadingScreen roomLoadingScreen;
 
     private Font MenuFont => joinCodeDisplayText != null && joinCodeDisplayText.font != null
         ? joinCodeDisplayText.font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
     private void Awake()
     {
+        if (menuPanel != null) GameUiScaling.Configure(menuPanel.GetComponentInParent<Canvas>(true));
+        GameLocalization.Changed += RefreshLocalizedUi;
+        GameLocalization.BindAuthoredUi(menuPanel != null ? menuPanel.transform : null);
+        GameLocalization.BindAuthoredUi(joinCodePanel != null ? joinCodePanel.transform : null);
+        resourcePreloader = GetComponent<RoomResourcePreloader>();
         clearSound = Resources.Load<AudioClip>("Sfx/Win");
         GameObject clearSfxPlayer = new GameObject("ClearSfxPlayer");
         clearSfxPlayer.transform.SetParent(transform, false);
@@ -92,18 +106,72 @@ public class MenuManager : MonoBehaviour
         clearSoundSource.spatialBlend = 0f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+        servicesReady = InitializeServices();
         ConfigureJoinCodeInput();
         CreateNameInput();
+        if(!string.IsNullOrEmpty(pendingRoomError) && menuErrorText!=null)
+        {
+            GameLocalization.ClearText(menuErrorText);menuErrorText.text=pendingRoomError;
+            pendingRoomError=null;
+        }
         CreateLobby();
         CreateSettingsMenu();
         CreateResultAndCreditsScreens();
         CreateSavedRoomUi();
         CreateTutorialUi();
+        CreateMainMenuTitle();
+        if(menuPanel!=null)
+        {
+            var canvas=menuPanel.GetComponentInParent<Canvas>(true);
+            if(canvas!=null)
+            {
+                roomLoadingScreen=gameObject.AddComponent<RoomLoadingScreen>();
+                roomLoadingScreen.Initialize(canvas,MenuFont);
+            }
+        }
+        if (menuPanel != null)
+            gameObject.AddComponent<PlayerCustomizationMenu>().Initialize(menuPanel, hostSettingsPanel, MenuFont);
         if (joinCodePanel != null)
             joinCodePanel.SetActive(false);
         if (logPanel != null)
             logPanel.SetActive(false);
-        servicesReady = InitializeServices();
+    }
+
+    private void CreateMainMenuTitle()
+    {
+        if (menuPanel == null || menuPanel.transform.Find("GameTitle") != null)
+            return;
+
+        Texture2D logo = Resources.Load<Texture2D>("UI/GunishmentTitle");
+        if (logo != null)
+        {
+            RectTransform rect = MakeRect("GameTitle", menuPanel.transform,
+                new Vector2(0.5f, 0.5f), new Vector2(0f, 350f),
+                new Vector2(900f, 900f * logo.height / logo.width));
+            var image = rect.gameObject.AddComponent<UnityEngine.UI.RawImage>();
+            image.texture = logo;
+            image.color = Color.white;
+            image.raycastTarget = false;
+        }
+
+        // Move the central buttons and room-code input together, preserving their spacing.
+        foreach (Transform child in menuPanel.transform)
+        {
+            if ((child.GetComponent<Button>() == null && child.GetComponent<InputField>() == null) ||
+                !(child is RectTransform rect))
+                continue;
+            if (rect.anchorMin != new Vector2(0.5f, 0.5f) || rect.anchorMax != rect.anchorMin)
+                continue;
+            rect.anchoredPosition += Vector2.down * 60f;
+        }
+    }
+
+    private void RefreshLocalizedUi()
+    {
+        if (colorNameText != null)
+            colorNameText.text = GameLocalization.T("PLAYER COLOR  /  {0}", GameLocalization.T(PlayerColorPalette.Names[PlayerColorPalette.SelectedIndex]));
+        if (savedRoomPageText != null) RefreshSavedRooms();
+        if (startButton != null) RefreshLobby();
     }
 
     private static async Task InitializeServices()
@@ -127,6 +195,12 @@ public class MenuManager : MonoBehaviour
 
     private void Update()
     {
+        var loadingNetwork=NetworkManager.Singleton;
+        bool awaitingClient=clientSessionStarted && !returningToMenu && loadingNetwork!=null &&
+            loadingNetwork.IsClient && !loadingNetwork.IsConnectedClient;
+        roomLoadingScreen?.SetLoading(isConnecting || awaitingClient,resourcePreloader);
+        if(menuErrorBackground!=null)
+            menuErrorBackground.enabled=menuErrorText!=null && !string.IsNullOrWhiteSpace(menuErrorText.text);
         clearSoundSource.volume = GameSettingsPreferences.SfxVolume;
         UpdateTutorialUi();
         bool canSave = NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost &&
@@ -135,8 +209,6 @@ public class MenuManager : MonoBehaviour
             !StageManager.Instance.IsTutorialStage;
         if (pauseSaveButton != null)
             pauseSaveButton.gameObject.SetActive(canSave);
-        if (pauseSaveExitButton != null)
-            pauseSaveExitButton.gameObject.SetActive(canSave);
         StageManager stage = StageManager.Instance;
         if (stage != null && stage.RoomTimerFinished)
         {
@@ -152,9 +224,23 @@ public class MenuManager : MonoBehaviour
             }
             long seconds = (long)Math.Floor(stage.RoomElapsedSeconds);
             int playerCount = Mathf.Max(1, stage.ClearPlayerCount);
-            clearDifficultyText.text = "DIFFICULTY  " + playerCount +
-                (playerCount == 1 ? " PLAYER" : " PLAYERS");
-            clearTimeText.text = $"TIME  {seconds / 3600:00}:{seconds / 60 % 60:00}:{seconds % 60:00}";
+            clearDifficultyText.text = GameLocalization.T(playerCount == 1 ? "DIFFICULTY  {0} PLAYER" : "DIFFICULTY  {0} PLAYERS", playerCount);
+            clearTimeText.text = GameLocalization.T("TIME") + $"  {seconds / 3600:00}:{seconds / 60 % 60:00}:{seconds % 60:00}";
+            double average=stage.AverageStagePoints;
+            string overall=ClearGradeRules.OverallGrade(average);
+            clearGradeText.text=GameLocalization.T("RANK  {0}", overall);
+            clearGradeText.color=ResultGradeColor(overall);
+            clearAverageText.text=GameLocalization.T("AVERAGE  {0} / 5", average.ToString("F2"))+
+                (stage.RecordedStageCount<8?GameLocalization.T("  ({0}/8 RECORDED)", stage.RecordedStageCount):"");
+            for(int i=0;i<8;i++)
+            {
+                double duration=stage.GetStageClearSeconds(i+1);
+                string grade=ClearGradeRules.StageGrade(duration);
+                stageResultTimes[i].text=ClearGradeRules.FormatTime(duration);
+                stageResultGrades[i].text=grade;
+                stageResultGrades[i].color=ResultGradeColor(grade);
+                stageResultPoints[i].text=duration<0d?"--":ClearGradeRules.Points(duration)+" / 5";
+            }
             return;
         }
         if (showingClear)
@@ -190,6 +276,7 @@ public class MenuManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        GameLocalization.Changed -= RefreshLocalizedUi;
         if (observedNetwork == null)
             return;
         observedNetwork.OnClientDisconnectCallback -= OnClientDisconnected;
@@ -211,7 +298,8 @@ public class MenuManager : MonoBehaviour
     {
         NetworkManager network = NetworkManager.Singleton;
         bool approved = request.ClientNetworkId == NetworkManager.ServerClientId ||
-            (network != null && network.ConnectedClientsIds.Count < MaxRoomPlayers);
+            (network != null && network.ConnectedClientsIds.Count < MaxRoomPlayers &&
+             (request.Payload == null || request.Payload.Length <= 512));
         response.Approved = approved;
         response.CreatePlayerObject = approved;
         if (!approved)
@@ -221,7 +309,17 @@ public class MenuManager : MonoBehaviour
     private void OnClientDisconnected(ulong clientId)
     {
         if (observedNetwork != null && clientId == observedNetwork.LocalClientId)
+        {
+            if(!returningToMenu && clientSessionStarted && !observedNetwork.IsServer)
+            {
+                string reason=observedNetwork.DisconnectReason;
+                Debug.LogWarning("Room connection ended. Reason: "+(string.IsNullOrEmpty(reason)?"Server closed or rejected the connection; compare [RoomConfig] logs on both peers.":reason));
+                pendingRoomError=reason=="ROOM FULL"?GameLocalization.T("ROOM FULL"):
+                    GameLocalization.Korean?"방 연결이 종료됐습니다. 호스트의 방 상태를 확인한 뒤 다시 참가해 주세요.":
+                    "CONNECTION CLOSED. CHECK THE HOST ROOM AND TRY AGAIN.";
+            }
             ReturnClientToMenu();
+        }
     }
 
     private void OnTransportFailure() => ReturnClientToMenu();
@@ -266,6 +364,18 @@ public class MenuManager : MonoBehaviour
         settings.SetLobbyPanel(hostSettingsPanel);
     }
 
+    private static Color ResultGradeColor(string grade)
+    {
+        switch(grade)
+        {
+            case "S": return new Color(1f,.82f,.24f);
+            case "A": return new Color(1f,.2f,.2f);
+            case "B": return new Color(.5f,.95f,.65f);
+            case "C": return new Color(1f,.7f,.4f);
+            default: return new Color(.5f,.52f,.55f);
+        }
+    }
+
     private void CreateResultAndCreditsScreens()
     {
         Canvas canvas = menuPanel != null ? menuPanel.GetComponentInParent<Canvas>() : null;
@@ -280,19 +390,37 @@ public class MenuManager : MonoBehaviour
         creditsButton.GetComponentInChildren<Text>(true).fontSize = 24;
 
         clearOverlay = MakeFullscreenOverlay("ClearOverlay", canvas.transform);
-        RectTransform clearCard = MakeCard("ClearCard", clearOverlay.transform, new Vector2(760f, 610f));
-        MakeText("ClearTitle", clearCard, "CLEAR", new Vector2(0f, 210f),
+        clearOverlay.GetComponent<Image>().color = new Color(0.015f, 0.02f, 0.03f, 0.25f);
+        RectTransform clearCard = MakeCard("ClearCard", clearOverlay.transform, new Vector2(900f, 840f));
+        MakeText("ClearTitle", clearCard, "CLEAR", new Vector2(0f, 344f),
             new Vector2(660f, 88f), 64);
         clearDifficultyText = MakeText("ClearDifficulty", clearCard, "DIFFICULTY",
-            new Vector2(0f, 105f), new Vector2(650f, 54f), 31);
+            new Vector2(0f, 278f), new Vector2(650f, 45f), 28);
         clearTimeText = MakeText("ClearTime", clearCard, "TIME",
-            new Vector2(0f, 35f), new Vector2(650f, 54f), 31);
+            new Vector2(0f, 235f), new Vector2(650f, 44f), 27);
+        clearGradeText=MakeText("ClearOverallGrade",clearCard,"RANK",new Vector2(0,164),new Vector2(750,104),60);
+        clearGradeText.resizeTextForBestFit=false;
+        clearGradeText.horizontalOverflow=HorizontalWrapMode.Overflow;
+        clearGradeText.verticalOverflow=VerticalWrapMode.Overflow;
+        clearAverageText=MakeText("ClearAveragePoints",clearCard,"AVERAGE",new Vector2(0,101),new Vector2(800,38),25);
+        MakeText("StageColumn",clearCard,"STAGE",new Vector2(-290,51),new Vector2(150,32),21);
+        MakeText("TimeColumn",clearCard,"TIME",new Vector2(-70,51),new Vector2(200,32),21);
+        MakeText("GradeColumn",clearCard,"RANK",new Vector2(140,51),new Vector2(120,32),21);
+        MakeText("PointsColumn",clearCard,"POINTS",new Vector2(295,51),new Vector2(140,32),21);
+        for(int i=0;i<8;i++)
+        {
+            float y=13-i*33;
+            GameLocalization.Bind(MakeText("StageName"+i,clearCard,"",new Vector2(-290,y),new Vector2(160,32),23), "STAGE {0}", i+1);
+            stageResultTimes[i]=MakeText("StageTime"+i,clearCard,"--:--:--",new Vector2(-70,y),new Vector2(200,32),23);
+            stageResultGrades[i]=MakeText("StageGrade"+i,clearCard,"--",new Vector2(140,y),new Vector2(120,32),25);
+            stageResultPoints[i]=MakeText("StagePoints"+i,clearCard,"--",new Vector2(295,y),new Vector2(140,32),23);
+        }
         MakeTemplateButton("ClearMainMenuButton", clearCard, "MAIN MENU",
-            new Vector2(-175f, -105f), new Vector2(300f, 70f), LeaveRoom);
+            new Vector2(-195f, -292f), new Vector2(340f, 70f), LeaveRoom);
         MakeTemplateButton("ClearWaitingRoomButton", clearCard, "WAITING ROOM",
-            new Vector2(175f, -105f), new Vector2(300f, 70f), ReturnToWaitingRoom);
+            new Vector2(195f, -292f), new Vector2(340f, 70f), ReturnToWaitingRoom);
         MakeTemplateButton("ClearCreditsButton", clearCard, "CREDITS",
-            new Vector2(0f, -220f), new Vector2(210f, 62f), OpenCredits);
+            new Vector2(0f, -370f), new Vector2(210f, 62f), OpenCredits);
         clearOverlay.SetActive(false);
 
         creditsOverlay = MakeFullscreenOverlay("CreditsOverlay", canvas.transform);
@@ -443,13 +571,37 @@ public class MenuManager : MonoBehaviour
         if (pause == null || pause.pausePanel == null)
             return;
         pauseSaveButton = MakeTemplateButton("PauseSaveButton", pause.pausePanel.transform,
-            "SAVE", new Vector2(-180f, -360f), new Vector2(245f, 80f), SaveRoom);
-        pauseSaveExitButton = MakeTemplateButton("PauseSaveExitButton", pause.pausePanel.transform,
-            "SAVE & MENU", new Vector2(180f, -360f), new Vector2(285f, 80f), SaveRoomAndExit);
+            "SAVE", Vector2.zero, new Vector2(200f, 100f), SaveRoom);
+        foreach (Text label in pause.pausePanel.GetComponentsInChildren<Text>(true))
+        {
+            if (label.text.Trim().Equals("RESTART", StringComparison.OrdinalIgnoreCase) || label.text.Trim() == "재시작")
+                label.text = "MAIN MENU";
+            if (label.text.Trim().Equals("MAIN MENU", StringComparison.OrdinalIgnoreCase))
+                FitMainMenuLabel(label);
+        }
+        GameLocalization.BindAuthoredUi(pause.pausePanel.transform);
         pauseSaveFeedback = MakeText("PauseSaveFeedback", pause.pausePanel.transform, "",
-            new Vector2(0f, -425f), new Vector2(650f, 40f), 22);
+            new Vector2(0f, -330f), new Vector2(650f, 40f), 22);
         pauseSaveButton.gameObject.SetActive(false);
-        pauseSaveExitButton.gameObject.SetActive(false);
+    }
+
+    public static void FitMainMenuLabel(Text label)
+    {
+        Button button = label.GetComponentInParent<Button>(true);
+        if (button == null) return;
+        Rect buttonRect = ((RectTransform)button.transform).rect;
+        float relativeScaleX = Mathf.Abs(label.transform.lossyScale.x / button.transform.lossyScale.x);
+        float relativeScaleY = Mathf.Abs(label.transform.lossyScale.y / button.transform.lossyScale.y);
+        label.resizeTextForBestFit = false;
+        label.horizontalOverflow = HorizontalWrapMode.Overflow;
+        label.verticalOverflow = VerticalWrapMode.Overflow;
+        label.alignment = TextAnchor.MiddleCenter;
+        label.fontSize = 100;
+        float renderedWidth = label.preferredWidth * Mathf.Max(.001f, relativeScaleX);
+        float renderedHeight = label.preferredHeight * Mathf.Max(.001f, relativeScaleY);
+        float fit = Mathf.Min(buttonRect.width * .75f / Mathf.Max(1f, renderedWidth),
+            buttonRect.height * .65f / Mathf.Max(1f, renderedHeight));
+        label.fontSize = Mathf.Clamp(Mathf.FloorToInt(100f * fit), 1, 200);
     }
 
     private void OpenSavedRooms()
@@ -457,8 +609,7 @@ public class MenuManager : MonoBehaviour
         savedRoomList = SavedRoomStore.LoadAll();
         savedRoomPage = 0;
         selectedSaveId = null;
-        savedRoomMessage.text = savedRoomList.Length == 0
-            ? "NO SAVED ROOMS" : "SELECT A ROOM TO CONTINUE";
+        GameLocalization.Bind(savedRoomMessage, savedRoomList.Length == 0 ? "NO SAVED ROOMS" : "SELECT A ROOM TO CONTINUE");
         RefreshSavedRooms();
         continueOverlay.SetActive(true);
         continueOverlay.transform.SetAsLastSibling();
@@ -475,8 +626,7 @@ public class MenuManager : MonoBehaviour
         int maxPage = Mathf.Max(0, (savedRoomList.Length - 1) / savedRoomButtons.Length);
         savedRoomPage = Mathf.Clamp(savedRoomPage + direction, 0, maxPage);
         selectedSaveId = null;
-        savedRoomMessage.text = savedRoomList.Length == 0
-            ? "NO SAVED ROOMS" : "SELECT A ROOM TO CONTINUE";
+        GameLocalization.Bind(savedRoomMessage, savedRoomList.Length == 0 ? "NO SAVED ROOMS" : "SELECT A ROOM TO CONTINUE");
         RefreshSavedRooms();
     }
 
@@ -496,9 +646,9 @@ public class MenuManager : MonoBehaviour
                 player => player.displayName));
             TimeSpan elapsed = TimeSpan.FromSeconds(Math.Max(0d, room.elapsedSeconds));
             string savedAt = DateTime.TryParse(room.savedUtc, out DateTime date)
-                ? date.ToLocalTime().ToString("MM/dd HH:mm") : "SAVED ROOM";
+                ? date.ToLocalTime().ToString("MM/dd HH:mm") : GameLocalization.T("SAVED ROOM");
             savedRoomButtons[i].GetComponentInChildren<Text>(true).text =
-                $"{savedAt}  /  CHECKPOINT {room.stage - 1}  /  {elapsed.Hours + elapsed.Days * 24:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}\n{names}";
+                GameLocalization.T("{0}  /  CHECKPOINT {1}  /  {2}\n{3}", savedAt, room.stage - 1, $"{elapsed.Hours + elapsed.Days * 24:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}", names);
         }
         savedRoomPageText.text = $"{savedRoomPage + 1} / {Mathf.Max(1, (savedRoomList.Length + 4) / 5)}";
         bool hasSelection = !string.IsNullOrEmpty(selectedSaveId);
@@ -512,7 +662,7 @@ public class MenuManager : MonoBehaviour
         if (index < 0 || index >= savedRoomList.Length)
             return;
         selectedSaveId = savedRoomList[index].id;
-        savedRoomMessage.text = "ROOM SELECTED";
+        GameLocalization.Bind(savedRoomMessage, "ROOM SELECTED");
         RefreshSavedRooms();
     }
 
@@ -529,7 +679,7 @@ public class MenuManager : MonoBehaviour
         catch (Exception exception)
         {
             Debug.LogException(exception);
-            savedRoomMessage.text = "COULD NOT SIGN IN";
+            GameLocalization.Bind(savedRoomMessage, "COULD NOT SIGN IN");
             return;
         }
         if (!continueOverlay.activeSelf || selectedSaveId != selectedId)
@@ -538,12 +688,12 @@ public class MenuManager : MonoBehaviour
             player => player.playerId == PlayerProfile.Id);
         if (!hostIsMember)
         {
-            savedRoomMessage.text = "THIS HOST IS NOT IN THAT ROOM";
+            GameLocalization.Bind(savedRoomMessage, "THIS HOST IS NOT IN THAT ROOM");
             return;
         }
         if (room.players.Length > MaxRoomPlayers)
         {
-            savedRoomMessage.text = "ROOM EXCEEDS 4 PLAYERS";
+            GameLocalization.Bind(savedRoomMessage, "ROOM EXCEEDS 4 PLAYERS");
             return;
         }
         CloseSavedRooms();
@@ -564,7 +714,7 @@ public class MenuManager : MonoBehaviour
         deleteConfirmOverlay.SetActive(false);
         if (string.IsNullOrEmpty(id) || !SavedRoomStore.Delete(id))
         {
-            savedRoomMessage.text = "COULD NOT DELETE ROOM";
+            GameLocalization.Bind(savedRoomMessage, "COULD NOT DELETE ROOM");
             return;
         }
 
@@ -572,27 +722,16 @@ public class MenuManager : MonoBehaviour
         selectedSaveId = null;
         savedRoomPage = Mathf.Min(savedRoomPage,
             Mathf.Max(0, (savedRoomList.Length - 1) / savedRoomButtons.Length));
-        savedRoomMessage.text = savedRoomList.Length == 0
-            ? "NO SAVED ROOMS" : "ROOM DELETED";
+        GameLocalization.Bind(savedRoomMessage, savedRoomList.Length == 0 ? "NO SAVED ROOMS" : "ROOM DELETED");
         RefreshSavedRooms();
     }
 
     private void SaveRoom()
     {
         if (StageManager.Instance != null && StageManager.Instance.TrySaveRoom())
-            pauseSaveFeedback.text = "ROOM SAVED";
+            GameLocalization.Bind(pauseSaveFeedback, "ROOM SAVED");
         else
-            pauseSaveFeedback.text = "COULD NOT SAVE ROOM";
-    }
-
-    private void SaveRoomAndExit()
-    {
-        if (StageManager.Instance == null || !StageManager.Instance.TrySaveRoom())
-        {
-            pauseSaveFeedback.text = "COULD NOT SAVE ROOM";
-            return;
-        }
-        LeaveRoom();
+            GameLocalization.Bind(pauseSaveFeedback, "COULD NOT SAVE ROOM");
     }
 
     private void ReturnToWaitingRoom()
@@ -656,22 +795,24 @@ public class MenuManager : MonoBehaviour
         bool playing = stage != null && stage.IsGameStarted &&
             !stage.RoomTimerFinished && !PauseManager.IsPaused;
         bool tutorial = playing && stage.IsTutorialStage;
+        bool showControls = playing && GameSettingsPreferences.ShowControlHints;
         if (controlHintsPanel != null)
-            controlHintsPanel.SetActive(tutorial && GameSettingsPreferences.ShowControlHints);
-        if (tutorial && controlHintsBody != null)
+            controlHintsPanel.SetActive(showControls);
+        if (showControls && controlHintsBody != null)
         {
             string labels =
-                "FORWARD  " + GameKeyBindings.GetLabel(PlayerAction.MoveForward) + "\n" +
-                "BACK  " + GameKeyBindings.GetLabel(PlayerAction.MoveBackward) + "\n" +
-                "LEFT  " + GameKeyBindings.GetLabel(PlayerAction.MoveLeft) + "\n" +
-                "RIGHT  " + GameKeyBindings.GetLabel(PlayerAction.MoveRight) + "\n" +
-                "MOUSE  LOOK\n" +
-                "SPRINT  " + GameKeyBindings.GetLabel(PlayerAction.Sprint) + "\n" +
-                "JUMP  " + GameKeyBindings.GetLabel(PlayerAction.Jump) + "\n" +
-                "PUSH  " + GameKeyBindings.GetLabel(PlayerAction.Push) + "\n" +
-                "GESTURE  " + GameKeyBindings.GetLabel(PlayerAction.Gesture) + "\n" +
-                "KICK  " + GameKeyBindings.GetLabel(PlayerAction.Kick) + "\n" +
-                "RESPAWN  " + GameKeyBindings.GetLabel(PlayerAction.Respawn);
+                GameLocalization.T("FORWARD") + "  " + GameKeyBindings.GetLabel(PlayerAction.MoveForward) + "\n" +
+                GameLocalization.T("BACKWARD") + "  " + GameKeyBindings.GetLabel(PlayerAction.MoveBackward) + "\n" +
+                GameLocalization.T("MOVE LEFT") + "  " + GameKeyBindings.GetLabel(PlayerAction.MoveLeft) + "\n" +
+                GameLocalization.T("MOVE RIGHT") + "  " + GameKeyBindings.GetLabel(PlayerAction.MoveRight) + "\n" +
+                GameLocalization.T("MOUSE  LOOK") + "\n" +
+                GameLocalization.T("SPRINT") + "  " + GameKeyBindings.GetLabel(PlayerAction.Sprint) + "\n" +
+                GameLocalization.T("JUMP") + "  " + GameKeyBindings.GetLabel(PlayerAction.Jump) + "\n" +
+                GameLocalization.T("PUSH") + "  " + GameKeyBindings.GetLabel(PlayerAction.Push) + "\n" +
+                GameLocalization.T("GESTURE") + "  " + GameKeyBindings.GetLabel(PlayerAction.Gesture) + "\n" +
+                GameLocalization.T("KICK") + "  " + GameKeyBindings.GetLabel(PlayerAction.Kick) + "\n" +
+                GameLocalization.T("RESPAWN") + "  " + GameKeyBindings.GetLabel(PlayerAction.Respawn) + "\n" +
+                GameLocalization.T("RELOAD") + "  " + GameKeyBindings.GetLabel(PlayerAction.Reload);
             if (controlHintsBody.text != labels)
                 controlHintsBody.text = labels;
         }
@@ -724,6 +865,7 @@ public class MenuManager : MonoBehaviour
         text.color = Color.white;
         text.raycastTarget = false;
         text.text = value;
+        GameLocalization.BindKnown(text, value);
         return text;
     }
 
@@ -761,6 +903,7 @@ public class MenuManager : MonoBehaviour
             labelText.horizontalOverflow = HorizontalWrapMode.Wrap;
             labelText.verticalOverflow = VerticalWrapMode.Truncate;
         }
+        GameLocalization.BindKnown(labelText, label);
         return button;
     }
 
@@ -788,8 +931,15 @@ public class MenuManager : MonoBehaviour
             PlayerProfile.Name = value;
         });
 
-        menuErrorText = MakeText("ConnectionError", menuPanel.transform, "",
-            new Vector2(0f, -345f), new Vector2(660f, 48f), 22);
+        var errorPanel=MakeRect("ConnectionMessagePanel",menuPanel.transform,
+            new Vector2(.5f,0f),new Vector2(0f,80f),new Vector2(1000f,76f));
+        menuErrorBackground=errorPanel.gameObject.AddComponent<Image>();
+        menuErrorBackground.color=new Color(.06f,.07f,.09f,.9f);
+        menuErrorBackground.raycastTarget=false;menuErrorBackground.enabled=false;
+        menuErrorText = MakeText("ConnectionError", errorPanel, "",
+            Vector2.zero, new Vector2(960f,66f), 25);
+        menuErrorText.horizontalOverflow=HorizontalWrapMode.Wrap;
+        menuErrorText.verticalOverflow=VerticalWrapMode.Truncate;
         menuErrorText.color = new Color(1f, 0.67f, 0.35f);
     }
 
@@ -836,6 +986,7 @@ public class MenuManager : MonoBehaviour
         placeholder.color = new Color(textColor.r, textColor.g, textColor.b, 0.45f);
         placeholder.alignment = TextAnchor.MiddleLeft;
         placeholder.text = placeholderValue;
+        GameLocalization.BindKnown(placeholder, placeholderValue);
         placeholder.raycastTarget = false;
 
         InputField field = root.gameObject.AddComponent<InputField>();
@@ -993,7 +1144,7 @@ public class MenuManager : MonoBehaviour
     private void SelectColor(int index)
     {
         PlayerColorPalette.SelectedIndex = index;
-        colorNameText.text = "PLAYER COLOR  /  " + PlayerColorPalette.Names[index];
+        colorNameText.text = GameLocalization.T("PLAYER COLOR  /  {0}", GameLocalization.T(PlayerColorPalette.Names[index]));
         for (int i = 0; i < colorOutlines.Length; i++)
             colorOutlines[i].enabled = i == index;
 
@@ -1019,18 +1170,20 @@ public class MenuManager : MonoBehaviour
         startButton.interactable = connected && network.IsHost &&
             StageManager.Instance != null && StageManager.Instance.IsSpawned && rosterReady;
         startButton.GetComponentInChildren<Text>(true).text = selectedSavedRoom == null
-            ? "START GAME" : "CONTINUE GAME";
+            ? GameLocalization.T("START GAME") : GameLocalization.T("CONTINUE GAME");
         if (isConnecting)
             lobbyStatusText.text = network != null && network.IsHost
-                ? "WAITING FOR PLAYERS" : "CONNECTING...";
+                ? GameLocalization.T("WAITING FOR PLAYERS") : GameLocalization.T("CONNECTING...");
         else
             lobbyStatusText.text = connected
-                ? (network.IsHost ? "WAITING FOR PLAYERS" : "WAITING FOR HOST")
-                : "CONNECTING...";
+                ? (network.IsHost ? GameLocalization.T("WAITING FOR PLAYERS") : GameLocalization.T("WAITING FOR HOST"))
+                : GameLocalization.T("CONNECTING...");
 
         if (selectedSavedRoom != null)
-            lobbyStatusText.text = rosterReady ? "ORIGINAL TEAM READY" :
-                "WAITING FOR ORIGINAL PLAYERS";
+            lobbyStatusText.text = rosterReady ? GameLocalization.T("ORIGINAL TEAM READY") :
+                GameLocalization.T("WAITING FOR ORIGINAL PLAYERS");
+        if (resourcePreloader != null && resourcePreloader.IsLoading)
+            lobbyStatusText.text = GameLocalization.T("PREPARING RESOURCES  {0}%", Mathf.RoundToInt(resourcePreloader.Progress * 100f));
 
         var players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
         Array.Sort(players, (a, b) => a.OwnerClientId.CompareTo(b.OwnerClientId));
@@ -1061,7 +1214,7 @@ public class MenuManager : MonoBehaviour
                 continue;
             string name = player.DisplayName;
             if (string.IsNullOrWhiteSpace(name) || name == "PLAYER")
-                name = "PLAYER " + (player.OwnerClientId + 1);
+                name = GameLocalization.T("PLAYER {0}", player.OwnerClientId + 1);
             int colorIndex = 0;
             uint packed = PlayerColorPalette.Pack(player.AvatarColor);
             for (int i = 0; i < PlayerColorPalette.Colors.Length; i++)
@@ -1074,15 +1227,15 @@ public class MenuManager : MonoBehaviour
             }
             string displayName = (count + 1) + ".  " + name;
             if (player.OwnerClientId == NetworkManager.ServerClientId)
-                displayName += " (HOST)";
+                displayName = GameLocalization.T("{0} (HOST)", displayName);
             lobbyPlayerNames[count].text = displayName;
-            lobbyPlayerColors[count].text = PlayerColorPalette.Names[colorIndex];
+            lobbyPlayerColors[count].text = GameLocalization.T(PlayerColorPalette.Names[colorIndex]);
             lobbyPlayerSwatches[count].color = player.AvatarColor;
             lobbyPlayerNames[count].transform.parent.gameObject.SetActive(true);
             count++;
         }
         if (selectedSavedRoom == null)
-            lobbyPlayersText.text = count == 0 ? "WAITING FOR PLAYERS..." : "";
+            lobbyPlayersText.text = count == 0 ? GameLocalization.T("WAITING FOR PLAYERS...") : "";
         else
         {
             var missing = new System.Collections.Generic.List<string>();
@@ -1094,7 +1247,7 @@ public class MenuManager : MonoBehaviour
                     missing.Add(saved.displayName);
             }
             lobbyPlayersText.text = missing.Count == 0 ? "" :
-                "WAITING: " + string.Join(", ", missing);
+                GameLocalization.T("WAITING: {0}", string.Join(", ", missing));
         }
     }
 
@@ -1118,6 +1271,29 @@ public class MenuManager : MonoBehaviour
 
     public void OnHostClicked() => HostRoom(null);
 
+    private static void PrepareRoomNetwork(NetworkManager network)
+    {
+        if(network.ShutdownInProgress)
+            throw new InvalidOperationException("Previous room is still shutting down. Please try again.");
+        // Apply the same handshake configuration before starting either role.
+        var config=network.NetworkConfig;
+        config.ConnectionApproval=true;
+        config.TickRate=30;
+        config.ForceSamePrefabs=true;
+        config.EnableSceneManagement=true;
+        config.EnsureNetworkVariableLengthSafety=false;
+    }
+
+    private static void LogRoomConfiguration(NetworkManager network,string role)
+    {
+        var config=network.NetworkConfig;
+        string prefabs=string.Join(",",config.Prefabs.NetworkPrefabOverrideLinks.Keys.OrderBy(key=>key));
+        Debug.Log($"[RoomConfig] role={role} version={Application.version} unity={Application.unityVersion} "+
+            $"hash={config.GetConfig(false):X16} cached={config.GetConfig():X16} protocol={config.ProtocolVersion} "+
+            $"tick={config.TickRate} approval={config.ConnectionApproval} samePrefabs={config.ForceSamePrefabs} "+
+            $"scenes={config.EnableSceneManagement} variableSafety={config.EnsureNetworkVariableLengthSafety} rpcHash={config.RpcHashSize} prefabs=[{prefabs}]");
+    }
+
     private async void HostRoom(SavedRoom resume)
     {
         NetworkManager network = NetworkManager.Singleton;
@@ -1127,16 +1303,19 @@ public class MenuManager : MonoBehaviour
         SavePlayerName();
         selectedSavedRoom = resume;
         if (menuErrorText != null)
-            menuErrorText.text = "";
+            GameLocalization.ClearText(menuErrorText);
         menuPanel.SetActive(false);
         hostSettingsPanel.SetActive(true);
         currentJoinCode = "";
         lobbyCodeText.text = "------";
         isConnecting = true;
+        roomLoadingScreen?.SetLoading(true,resourcePreloader);
         int generation = ++connectionGeneration;
 
         try
         {
+            if (resourcePreloader != null) await resourcePreloader.PrepareAsync();
+            if (this == null || generation != connectionGeneration) return;
             await servicesReady;
             if (generation != connectionGeneration)
                 return;
@@ -1146,23 +1325,26 @@ public class MenuManager : MonoBehaviour
                 return;
 
             var transport = network.GetComponent<UnityTransport>();
+            PrepareRoomNetwork(network);
             transport.SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, "dtls"));
             network.NetworkConfig.ConnectionApproval = true;
             network.ConnectionApprovalCallback = ApproveRoomConnection;
             if (!network.StartHost())
                 throw new InvalidOperationException("Could not start the room.");
+            LogRoomConfiguration(network,"HOST");
 
             currentJoinCode = code;
             lobbyCodeText.text = code;
         }
         catch (Exception exception)
         {
+            if (this == null || generation != connectionGeneration) return;
             Debug.LogException(exception);
             selectedSavedRoom = null;
             hostSettingsPanel.SetActive(false);
             menuPanel.SetActive(true);
             if (menuErrorText != null)
-                menuErrorText.text = "COULD NOT CREATE ROOM";
+                GameLocalization.Bind(menuErrorText, "COULD NOT CREATE ROOM");
         }
         finally
         {
@@ -1181,12 +1363,12 @@ public class MenuManager : MonoBehaviour
 
         SavePlayerName();
         if (menuErrorText != null)
-            menuErrorText.text = "";
+            GameLocalization.ClearText(menuErrorText);
         string code = joinCodeInput.text.Trim().ToUpperInvariant();
         if (code.Length != 6 || !System.Text.RegularExpressions.Regex.IsMatch(code, "^[A-Z0-9]{6}$"))
         {
             if (menuErrorText != null)
-                menuErrorText.text = "ENTER A 6-CHARACTER ROOM CODE";
+                GameLocalization.Bind(menuErrorText, "ENTER A 6-CHARACTER ROOM CODE");
             return;
         }
 
@@ -1195,9 +1377,12 @@ public class MenuManager : MonoBehaviour
         currentJoinCode = code;
         lobbyCodeText.text = code;
         isConnecting = true;
+        roomLoadingScreen?.SetLoading(true,resourcePreloader);
         int generation = ++connectionGeneration;
         try
         {
+            if (resourcePreloader != null) await resourcePreloader.PrepareAsync();
+            if (this == null || generation != connectionGeneration) return;
             await servicesReady;
             if (generation != connectionGeneration)
                 return;
@@ -1206,20 +1391,23 @@ public class MenuManager : MonoBehaviour
                 return;
 
             var transport = network.GetComponent<UnityTransport>();
+            PrepareRoomNetwork(network);
             transport.DisconnectTimeoutMS = 8000;
             transport.SetRelayServerData(AllocationUtils.ToRelayServerData(allocation, "dtls"));
             network.NetworkConfig.ConnectionApproval = true;
             if (!network.StartClient())
                 throw new InvalidOperationException("Could not join the room.");
+            LogRoomConfiguration(network,"CLIENT");
             clientSessionStarted = true;
         }
         catch (Exception exception)
         {
+            if (this == null || generation != connectionGeneration) return;
             Debug.LogException(exception);
             hostSettingsPanel.SetActive(false);
             menuPanel.SetActive(true);
             if (menuErrorText != null)
-                menuErrorText.text = "COULD NOT JOIN ROOM";
+                GameLocalization.Bind(menuErrorText, "COULD NOT JOIN ROOM");
         }
         finally
         {
@@ -1235,7 +1423,7 @@ public class MenuManager : MonoBehaviour
         if (selectedSavedRoom != null)
         {
             if (!SavedRosterReady() || !StageManager.Instance.BeginSavedGame(selectedSavedRoom))
-                lobbyStatusText.text = "COULD NOT CONTINUE ROOM";
+                GameLocalization.Bind(lobbyStatusText, "COULD NOT CONTINUE ROOM");
             return;
         }
         StageManager.Instance.BeginGame();
@@ -1243,6 +1431,7 @@ public class MenuManager : MonoBehaviour
 
     public void LeaveRoom()
     {
+        StageManager.Instance?.SaveElapsedBeforeExit();
         connectionGeneration++;
         selectedSavedRoom = null;
         if (returningToMenu)
@@ -1273,10 +1462,10 @@ public class MenuManager : MonoBehaviour
     private IEnumerator ShowCopyFeedback()
     {
         if (lobbyCopyFeedbackText != null)
-            lobbyCopyFeedbackText.text = "COPIED";
+            GameLocalization.Bind(lobbyCopyFeedbackText, "COPIED");
         yield return new WaitForSecondsRealtime(1.2f);
         if (lobbyCopyFeedbackText != null)
-            lobbyCopyFeedbackText.text = "";
+            GameLocalization.ClearText(lobbyCopyFeedbackText);
     }
 
     public void ChangeTimeLimit(float dir)

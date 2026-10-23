@@ -9,12 +9,17 @@ public static class Stage7CourseBuilder
 {
     private const int LengthSegments = 128;
     private const int ArcSegments = 28;
-    private const float Radius = 6.5f;
+    private const float Radius = 8.5f;
+    private const float TopFlatteningPower = 3f;
+    private const float PreviousRadius = 6.5f;
+    private const float PusherSideOffset = Radius - 2.5f;
+    private const float PreviousPusherSideOffset = 5f;
     private const float StartZ = 456f;
     private const float Length = 190f;
     private const float PreviousLength = 145f;
     private static readonly float[] ElevationTimes = { 0f, 0.23f, 0.45f, 0.66f, 0.84f, 1f };
-    private static readonly float[] ElevationOffsets = { 0f, 8f, 1f, 12f, 3f, 10f };
+    private static readonly float[] ElevationOffsets = { 0f, 4.6f, 2.8f, 7.6f, 5.6f, 10f };
+    private static readonly float[] PreviousElevationOffsets = { 0f, 4f, 3f, 7f, 6f, 10f };
 
     public static void UpgradeStageOneScene()
     {
@@ -58,7 +63,21 @@ public static class Stage7CourseBuilder
         bool changed = false;
         Mesh ringsMesh = AssetDatabase.LoadAssetAtPath<Mesh>(
             "Assets/Meshes/Stage7SewerRings.asset");
-        if (channelMesh.vertexCount != (LengthSegments + 1) * (ArcSegments + 1) + 2)
+        bool needsLengthUpgrade = channelMesh.vertexCount !=
+            (LengthSegments + 1) * (ArcSegments + 1) + 2;
+        bool needsRadiusUpgrade = !needsLengthUpgrade &&
+            Mathf.Abs(channelMesh.vertices[ArcSegments / 2].y -
+                ChannelPoint(0f, 0.5f).y) > 0.05f;
+        bool needsTopShapeUpgrade = !needsLengthUpgrade &&
+            Mathf.Abs(channelMesh.vertices[3].y -
+                ChannelPoint(0f, 3f / ArcSegments).y) > 0.02f;
+        bool needsPathUpgrade = !needsLengthUpgrade &&
+            (channelMesh.vertices[32 * (ArcSegments + 1)] -
+             ChannelPoint(0.25f, 0f)).sqrMagnitude > 0.05f * 0.05f;
+        float oldRadius = needsRadiusUpgrade
+            ? (Floor(0f).y - channelMesh.vertices[ArcSegments / 2].y) * 0.5f
+            : Radius;
+        if (needsLengthUpgrade || needsRadiusUpgrade || needsTopShapeUpgrade || needsPathUpgrade)
         {
             ReplaceMesh(channelMesh, BuildChannelMesh());
             if (ringsMesh != null)
@@ -72,22 +91,29 @@ public static class Stage7CourseBuilder
             EditorUtility.SetDirty(channelMesh);
             if (ringsMesh != null)
                 EditorUtility.SetDirty(ringsMesh);
-            float extension = Length - PreviousLength;
-            MoveChildForward(section.transform, "Stage7FinishPlatform", extension);
-            MoveChildForward(section.transform, "Stage7FinishLine", extension);
-            Transform goal = section.transform.Find("Stage7BoulderGoal");
-            if (goal != null)
+            if (needsLengthUpgrade)
             {
-                goal.position += Vector3.forward * extension;
-                StageGoalTrigger trigger = goal.GetComponent<StageGoalTrigger>();
-                if (trigger != null)
+                float extension = Length - PreviousLength;
+                MoveChildForward(section.transform, "Stage7FinishPlatform", extension);
+                MoveChildForward(section.transform, "Stage7FinishLine", extension);
+                Transform goal = section.transform.Find("Stage7BoulderGoal");
+                if (goal != null)
                 {
-                    SerializedObject settings = new SerializedObject(trigger);
-                    settings.FindProperty("finishZ").floatValue += extension;
-                    settings.ApplyModifiedPropertiesWithoutUndo();
+                    goal.position += Vector3.forward * extension;
+                    StageGoalTrigger trigger = goal.GetComponent<StageGoalTrigger>();
+                    if (trigger != null)
+                    {
+                        SerializedObject settings = new SerializedObject(trigger);
+                        settings.FindProperty("finishZ").floatValue += extension;
+                        settings.ApplyModifiedPropertiesWithoutUndo();
+                    }
                 }
+                CreateStage7Obstacles(section.transform);
             }
-            CreateStage7Obstacles(section.transform);
+            else if (needsRadiusUpgrade)
+                UpgradePusherLayout(section.transform, oldRadius);
+            if (needsPathUpgrade)
+                UpgradeObstaclePathLayout(section.transform);
             changed = true;
         }
 
@@ -301,7 +327,7 @@ public static class Stage7CourseBuilder
         Vector3 right = orientation * Vector3.right;
 
         GameObject head = CreateCube(section, $"Stage7Pusher_{number:00}",
-            floor + right * (side * 5f) - Vector3.up * 0.2f,
+            floor + right * (side * PusherSideOffset) - Vector3.up * 0.2f,
             new Vector3(0.85f, 4.5f, 2.6f), pusherMaterial);
         head.transform.rotation = orientation;
         Rigidbody body = head.AddComponent<Rigidbody>();
@@ -311,7 +337,8 @@ public static class Stage7CourseBuilder
         SerializedObject settings = new SerializedObject(obstacle);
         settings.FindProperty("localPushDirection").vector3Value =
             side > 0f ? Vector3.left : Vector3.right;
-        settings.FindProperty("strokeDistance").floatValue = 5.8f;
+        settings.FindProperty("strokeDistance").floatValue =
+            5.8f + PusherSideOffset - PreviousPusherSideOffset;
         settings.FindProperty("cycleSeconds").floatValue = 5.1f;
         settings.FindProperty("extendSeconds").floatValue = 0.52f;
         settings.FindProperty("holdSeconds").floatValue = 0.22f;
@@ -321,13 +348,75 @@ public static class Stage7CourseBuilder
         settings.ApplyModifiedPropertiesWithoutUndo();
 
         GameObject housing = CreateCube(section, $"Stage7PusherHousing_{number:00}",
-            floor + right * (side * 7.1f) - Vector3.up * 1.2f,
+            floor + right * (side * (PusherSideOffset + 2.1f)) - Vector3.up * 1.2f,
             new Vector3(2.2f, 3.8f, 3.6f), frameMaterial, false);
         housing.transform.rotation = orientation;
         GameObject guide = CreateCube(section, $"Stage7PusherGuide_{number:00}",
-            floor + right * (side * 6.2f) - Vector3.up * 0.2f,
+            floor + right * (side * (PusherSideOffset + 1.2f)) - Vector3.up * 0.2f,
             new Vector3(2.3f, 0.55f, 0.7f), frameMaterial, false);
         guide.transform.rotation = orientation;
+    }
+
+    private static void UpgradePusherLayout(Transform section, float oldRadius)
+    {
+        float oldOffset = Mathf.Abs(oldRadius - PreviousRadius) < 0.05f
+            ? PreviousPusherSideOffset
+            : oldRadius - 2.5f;
+        float offsetChange = PusherSideOffset - oldOffset;
+        float[] times = { 0.20f, 0.47f, 0.72f };
+        float[] sides = { 1f, -1f, 1f };
+        for (int index = 0; index < times.Length; index++)
+        {
+            int number = index + 1;
+            Vector3 shift = CourseOrientation(times[index]) * Vector3.right *
+                (sides[index] * offsetChange);
+            Transform head = section.Find($"Stage7Pusher_{number:00}");
+            Transform housing = section.Find($"Stage7PusherHousing_{number:00}");
+            Transform guide = section.Find($"Stage7PusherGuide_{number:00}");
+            if (head != null)
+            {
+                head.position += shift;
+                PushingStageObstacle obstacle = head.GetComponent<PushingStageObstacle>();
+                if (obstacle != null)
+                {
+                    SerializedObject settings = new SerializedObject(obstacle);
+                    SerializedProperty stroke = settings.FindProperty("strokeDistance");
+                    stroke.floatValue += offsetChange;
+                    settings.ApplyModifiedPropertiesWithoutUndo();
+                }
+            }
+            if (housing != null)
+                housing.position += shift;
+            if (guide != null)
+                guide.position += shift;
+        }
+    }
+
+    private static void UpgradeObstaclePathLayout(Transform section)
+    {
+        float[] pusherTimes = { 0.20f, 0.47f, 0.72f };
+        for (int index = 0; index < pusherTimes.Length; index++)
+        {
+            int number = index + 1;
+            float t = pusherTimes[index];
+            MoveWithCourse(section.Find($"Stage7Pusher_{number:00}"), t);
+            MoveWithCourse(section.Find($"Stage7PusherHousing_{number:00}"), t);
+            MoveWithCourse(section.Find($"Stage7PusherGuide_{number:00}"), t);
+        }
+        MoveWithCourse(section.Find("Stage7Swing_01"), 0.34f);
+        MoveWithCourse(section.Find("Stage7Swing_02"), 0.84f);
+    }
+
+    private static void MoveWithCourse(Transform obstacle, float t)
+    {
+        if (obstacle == null)
+            return;
+        Vector3 oldFloor = PreviousFloor(t);
+        Vector3 newFloor = Floor(t);
+        Quaternion turn = CourseOrientation(t) *
+            Quaternion.Inverse(PreviousCourseOrientation(t));
+        obstacle.position = newFloor + turn * (obstacle.position - oldFloor);
+        obstacle.rotation = turn * obstacle.rotation;
     }
 
     private static void CreateSwing(Transform section, int number, float t, float phase,
@@ -347,7 +436,7 @@ public static class Stage7CourseBuilder
         UnityEngine.Object.DestroyImmediate(hinge.GetComponent<SphereCollider>());
 
         const float weightCenterDistance = 9f;
-        const float weightRadius = 1.3f;
+        const float weightRadius = 0.91f;
         float ropeLength = weightCenterDistance - weightRadius;
 
         GameObject rope = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -370,7 +459,7 @@ public static class Stage7CourseBuilder
         body.useGravity = false;
         SwingingStageObstacle obstacle = pivot.AddComponent<SwingingStageObstacle>();
         SerializedObject settings = new SerializedObject(obstacle);
-        settings.FindProperty("amplitudeDegrees").floatValue = 52f;
+        settings.FindProperty("amplitudeDegrees").floatValue = 80f;
         settings.FindProperty("cycleSeconds").floatValue = 4.2f;
         settings.FindProperty("phaseOffsetSeconds").floatValue = phase;
         settings.FindProperty("boulderHitImpulse").floatValue = 12f;
@@ -387,11 +476,38 @@ public static class Stage7CourseBuilder
         for (int number = 1; number <= 2; number++)
         {
             Transform pivot = section.Find($"Stage7Swing_{number:00}");
-            if (pivot == null ||
-                (pivot.Find("SwingRope") != null &&
-                 pivot.Find("SwingWeight") != null &&
-                 pivot.Find("SwingWeight_Left") == null))
+            if (pivot == null)
                 continue;
+
+            if (pivot.Find("SwingRope") != null &&
+                pivot.Find("SwingWeight") != null &&
+                pivot.Find("SwingWeight_Left") == null)
+            {
+                Transform weight = pivot.Find("SwingWeight");
+                Transform rope = pivot.Find("SwingRope");
+                const float diameter = 1.82f;
+                float ropeLength = -weight.localPosition.y - diameter * 0.5f;
+                if (Mathf.Abs(weight.localScale.x - diameter) > 0.001f)
+                {
+                    weight.localScale = Vector3.one * diameter;
+                    rope.localPosition = Vector3.down * (ropeLength * 0.5f);
+                    rope.localScale = new Vector3(rope.localScale.x, ropeLength * 0.5f, rope.localScale.z);
+                    changed = true;
+                }
+                SwingingStageObstacle obstacle = pivot.GetComponent<SwingingStageObstacle>();
+                if (obstacle != null)
+                {
+                    SerializedObject settings = new SerializedObject(obstacle);
+                    SerializedProperty amplitude = settings.FindProperty("amplitudeDegrees");
+                    if (!Mathf.Approximately(amplitude.floatValue, 80f))
+                    {
+                        amplitude.floatValue = 80f;
+                        settings.ApplyModifiedPropertiesWithoutUndo();
+                        changed = true;
+                    }
+                }
+                continue;
+            }
 
             UnityEngine.Object.DestroyImmediate(pivot.gameObject);
             DestroySectionChild(section, $"Stage7SwingCrossbar_{number:00}");
@@ -421,6 +537,14 @@ public static class Stage7CourseBuilder
         return Quaternion.LookRotation(horizontalForward, Vector3.up);
     }
 
+    private static Quaternion PreviousCourseOrientation(float t)
+    {
+        Vector3 tangent = (PreviousFloor(Mathf.Min(1f, t + 0.001f)) -
+            PreviousFloor(Mathf.Max(0f, t - 0.001f))).normalized;
+        Vector3 horizontalForward = Vector3.ProjectOnPlane(tangent, Vector3.up).normalized;
+        return Quaternion.LookRotation(horizontalForward, Vector3.up);
+    }
+
     private static float Smooth(float t)
     {
         t = Mathf.Clamp01(t);
@@ -435,12 +559,24 @@ public static class Stage7CourseBuilder
         float eased = Smooth(t);
         float envelope = Envelope(t);
         return new Vector3(
-            49.97f + 14f * eased + 12f * envelope * Mathf.Sin(3f * Mathf.PI * t),
+            49.97f + 14f * eased + 6f * envelope * Mathf.Sin(3f * Mathf.PI * t),
             68.33f + ElevationAt(t),
             StartZ + Length * t);
     }
 
-    private static float ElevationAt(float t)
+    private static Vector3 PreviousFloor(float t)
+    {
+        float eased = Smooth(t);
+        float envelope = Envelope(t);
+        return new Vector3(
+            49.97f + 14f * eased + 6f * envelope * Mathf.Sin(3f * Mathf.PI * t),
+            68.33f + ElevationAt(t, PreviousElevationOffsets),
+            StartZ + Length * t);
+    }
+
+    private static float ElevationAt(float t) => ElevationAt(t, ElevationOffsets);
+
+    private static float ElevationAt(float t, float[] offsets)
     {
         t = Mathf.Clamp01(t);
         for (int i = 1; i < ElevationTimes.Length; i++)
@@ -448,10 +584,10 @@ public static class Stage7CourseBuilder
             {
                 float progress = (t - ElevationTimes[i - 1]) /
                     (ElevationTimes[i] - ElevationTimes[i - 1]);
-                return Mathf.Lerp(ElevationOffsets[i - 1],
-                    ElevationOffsets[i], Smooth(progress));
+                return Mathf.Lerp(offsets[i - 1],
+                    offsets[i], Smooth(progress));
             }
-        return ElevationOffsets[ElevationOffsets.Length - 1];
+        return offsets[offsets.Length - 1];
     }
 
     private static Vector3 ChannelPoint(float t, float arcFraction)
@@ -461,12 +597,17 @@ public static class Stage7CourseBuilder
             Floor(Mathf.Max(0f, t - 0.001f))).normalized;
         Vector3 right = Vector3.Cross(Vector3.up, tangent).normalized;
         Vector3 up = Vector3.Cross(tangent, right).normalized;
-        float bank = 12f * Mathf.Sin(4f * Mathf.PI * t) * Envelope(t);
+        float bank = 4f * Mathf.Sin(4f * Mathf.PI * t) * Envelope(t);
         Quaternion banking = Quaternion.AngleAxis(bank, tangent);
         float angle = 2f * Mathf.PI * arcFraction;
+        float horizontal = Mathf.Sin(angle);
+        float vertical = Mathf.Cos(angle);
+        if (vertical > 0f)
+            vertical = Mathf.Sqrt(Mathf.Max(0f, 1f -
+                Mathf.Pow(Mathf.Abs(horizontal), TopFlatteningPower)));
         return floor - Vector3.up * Radius +
-            banking * (right * (Radius * Mathf.Sin(angle)) +
-                       up * (Radius * Mathf.Cos(angle)));
+            banking * (right * (Radius * horizontal) +
+                       up * (Radius * vertical));
     }
 
     private static Mesh BuildChannelMesh()

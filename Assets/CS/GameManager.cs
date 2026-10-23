@@ -16,6 +16,7 @@ public class GameManager : NetworkBehaviour
     private Dictionary<ulong, int> lives = new Dictionary<ulong, int>();
     private TableSpotManager tableSpotManager;
     private int localLives = -1;
+    private readonly Dictionary<ulong, RequestBudget> pressBudgets = new();
 
     public int LocalLives => localLives;
 
@@ -25,8 +26,9 @@ public class GameManager : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void StartRoundServerRpc()
+    public void StartRoundServerRpc(RpcParams rpcParams = default)
     {
+        if (rpcParams.Receive.SenderClientId != Unity.Netcode.NetworkManager.ServerClientId) return;
         foreach (var id in NetworkManager.Singleton.ConnectedClientsIds)
         {
             if (!lives.ContainsKey(id))
@@ -63,8 +65,14 @@ public class GameManager : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void PressButtonServerRpc(ulong senderId)
+    public void PressButtonServerRpc(ulong senderId, RpcParams rpcParams = default)
     {
+        if (senderId != rpcParams.Receive.SenderClientId || turnOrder.Count == 0 ||
+            !NetworkManager.ConnectedClients.TryGetValue(senderId, out var client) || client.PlayerObject == null ||
+            tableTransform == null || Vector3.Distance(client.PlayerObject.transform.position, tableTransform.position) > 3f) return;
+        if (!pressBudgets.TryGetValue(senderId, out var budget))
+            pressBudgets[senderId] = budget = new RequestBudget(15f, 30f);
+        if (!budget.Allow()) return;
         if (turnOrder[currentTurnIndex] != senderId)
         {
             Debug.Log($"[서버] {senderId}의 차례가 아님, 무시");

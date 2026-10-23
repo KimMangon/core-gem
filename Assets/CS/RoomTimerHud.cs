@@ -16,6 +16,7 @@ public class RoomTimerHud : MonoBehaviour
 
     private void Awake()
     {
+        GameLocalization.Changed += InvalidateLanguage;
         canvasGroup = GetComponent<CanvasGroup>();
         if (timerText == null)
             timerText = GetComponentInChildren<UnityEngine.UI.Text>(true);
@@ -55,8 +56,11 @@ public class RoomTimerHud : MonoBehaviour
         long remainingSeconds = seconds % 60;
         timerText.text = string.Format(CultureInfo.InvariantCulture,
             "{0} {1:00}:{2:00}:{3:00}",
-            finished ? "FINISH TIME" : "PLAY TIME", hours, minutes, remainingSeconds);
+            GameLocalization.T(finished ? "FINISH TIME" : "PLAY TIME"), hours, minutes, remainingSeconds);
     }
+
+    private void InvalidateLanguage() => displayedSecond = -1;
+    private void OnDestroy() => GameLocalization.Changed -= InvalidateLanguage;
 
     private void SetVisible(bool visible)
     {

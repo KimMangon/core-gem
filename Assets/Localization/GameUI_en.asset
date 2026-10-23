@@ -1,0 +1,629 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: GameUI_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: d4884beb0aa2fcf488d6e36f0408b529, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 1301970944
+    m_Localized: Host
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1335525376
+    m_Localized: Join
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719680
+    m_Localized: Confirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719681
+    m_Localized: Enter text...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719682
+    m_Localized: MAIN MENU
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719683
+    m_Localized: Quit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719684
+    m_Localized: QUIT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719685
+    m_Localized: SETTINGS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719686
+    m_Localized: CONTINUE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719687
+    m_Localized: SAVE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719688
+    m_Localized: BACK
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719689
+    m_Localized: CANCEL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719690
+    m_Localized: DELETE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719691
+    m_Localized: PREV
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719692
+    m_Localized: NEXT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719693
+    m_Localized: WAITING ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719694
+    m_Localized: ROOM CODE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719695
+    m_Localized: COPY
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719696
+    m_Localized: COPIED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719697
+    m_Localized: PLAYERS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719698
+    m_Localized: PLAYER NAME
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719699
+    m_Localized: PLAYER COLOR  /  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719700
+    m_Localized: PLAY TUTORIAL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719701
+    m_Localized: START GAME
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719702
+    m_Localized: CONTINUE GAME
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719703
+    m_Localized: LEAVE ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719704
+    m_Localized: CONNECTING...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719705
+    m_Localized: WAITING FOR PLAYERS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719706
+    m_Localized: WAITING FOR PLAYERS...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719707
+    m_Localized: WAITING FOR HOST
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719708
+    m_Localized: ORIGINAL TEAM READY
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719709
+    m_Localized: WAITING FOR ORIGINAL PLAYERS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719710
+    m_Localized: PREPARING RESOURCES  {0}%
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719711
+    m_Localized: PLAYER {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719712
+    m_Localized: '{0} (HOST)'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719713
+    m_Localized: 'WAITING: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719714
+    m_Localized: ROOM FULL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719715
+    m_Localized: COULD NOT CREATE ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719716
+    m_Localized: COULD NOT JOIN ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719717
+    m_Localized: ENTER A 6-CHARACTER ROOM CODE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719718
+    m_Localized: COULD NOT CONTINUE ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719719
+    m_Localized: LANGUAGE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719720
+    m_Localized: MASTER VOLUME
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719721
+    m_Localized: BGM VOLUME
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719722
+    m_Localized: SFX VOLUME
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719723
+    m_Localized: MOUSE SPEED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719724
+    m_Localized: FULLSCREEN
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719725
+    m_Localized: RESOLUTION
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719726
+    m_Localized: CONTROL HINTS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719727
+    m_Localized: ON
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719728
+    m_Localized: OFF
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719729
+    m_Localized: KEY SETTINGS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719730
+    m_Localized: MOVE FORWARD
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719731
+    m_Localized: MOVE BACK
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719732
+    m_Localized: MOVE LEFT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719733
+    m_Localized: MOVE RIGHT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719734
+    m_Localized: SPRINT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719735
+    m_Localized: JUMP
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719736
+    m_Localized: PUSH
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719737
+    m_Localized: GESTURE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719738
+    m_Localized: KICK
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719739
+    m_Localized: RESPAWN
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719740
+    m_Localized: RELOAD
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719741
+    m_Localized: CLICK A CONTROL TO CHANGE IT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719742
+    m_Localized: PRESS A KEY OR MOUSE BUTTON  /  ESC CANCELS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719743
+    m_Localized: PRESS KEY
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719744
+    m_Localized: KEY CHANGE CANCELLED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719745
+    m_Localized: THAT KEY IS RESERVED  /  PRESS ANOTHER
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719746
+    m_Localized: CONTROL UPDATED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719747
+    m_Localized: DEFAULT CONTROLS RESTORED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719748
+    m_Localized: RESET DEFAULTS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719749
+    m_Localized: MOUSE LEFT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719750
+    m_Localized: MOUSE RIGHT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719751
+    m_Localized: MOUSE MIDDLE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719752
+    m_Localized: SHIFT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719753
+    m_Localized: RIGHT SHIFT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719754
+    m_Localized: SPACE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719755
+    m_Localized: UP
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719756
+    m_Localized: DOWN
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719757
+    m_Localized: LEFT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719758
+    m_Localized: RIGHT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719759
+    m_Localized: CONTROLS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719760
+    m_Localized: FORWARD
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719761
+    m_Localized: BACKWARD
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719762
+    m_Localized: MOUSE  LOOK
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719763
+    m_Localized: SAVED ROOMS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719764
+    m_Localized: DELETE SAVED ROOM?
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719765
+    m_Localized: THIS CANNOT BE UNDONE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719766
+    m_Localized: NO SAVED ROOMS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719767
+    m_Localized: SELECT A ROOM TO CONTINUE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719768
+    m_Localized: SAVED ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719769
+    m_Localized: '{0}  /  CHECKPOINT {1}  /  {2}
+
+      {3}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719770
+    m_Localized: ROOM SELECTED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719771
+    m_Localized: COULD NOT SIGN IN
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719772
+    m_Localized: THIS HOST IS NOT IN THAT ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719773
+    m_Localized: ROOM EXCEEDS 4 PLAYERS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719774
+    m_Localized: COULD NOT DELETE ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719775
+    m_Localized: ROOM DELETED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719776
+    m_Localized: ROOM SAVED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719777
+    m_Localized: COULD NOT SAVE ROOM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719778
+    m_Localized: FIST
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719779
+    m_Localized: HANDGUN
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719780
+    m_Localized: RELOADING
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719781
+    m_Localized: BOULDER  {0} / {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719782
+    m_Localized: PLAY TIME
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719783
+    m_Localized: FINISH TIME
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719784
+    m_Localized: GOAL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719785
+    m_Localized: CLEAR
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719786
+    m_Localized: DIFFICULTY
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719787
+    m_Localized: DIFFICULTY  {0} PLAYER
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719788
+    m_Localized: DIFFICULTY  {0} PLAYERS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719789
+    m_Localized: TIME
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719790
+    m_Localized: RANK
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719791
+    m_Localized: RANK  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719792
+    m_Localized: AVERAGE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719793
+    m_Localized: AVERAGE  {0} / 5
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719794
+    m_Localized: '  ({0}/8 RECORDED)'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719795
+    m_Localized: STAGE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719796
+    m_Localized: STAGE {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719797
+    m_Localized: POINTS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719798
+    m_Localized: Lives
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719799
+    m_Localized: 'Lives: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719800
+    m_Localized: TimeLimit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719801
+    m_Localized: SHOOT THE RED TRAP  /  3 HITS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719802
+    m_Localized: TRAP DISABLED!  PUSH THE BOULDER FORWARD
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719803
+    m_Localized: SHOOT THE MONSTER!  PROTECT THE BOULDER
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719804
+    m_Localized: TRAINING COMPLETE!  PUSH THE BOULDER TO THE GOAL
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719805
+    m_Localized: '2: EQUIP GUN     LEFT CLICK: FIRE     {0}: RELOAD'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719806
+    m_Localized: SHOOT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719807
+    m_Localized: BLUE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719808
+    m_Localized: RED
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719809
+    m_Localized: ORANGE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719810
+    m_Localized: YELLOW
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719811
+    m_Localized: GREEN
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719812
+    m_Localized: CYAN
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719813
+    m_Localized: PURPLE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719814
+    m_Localized: PINK
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719815
+    m_Localized: CREDITS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719816
+    m_Localized: SOURCE
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719817
+    m_Localized: SOURCE opens the original page
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719818
+    m_Localized: 3D ASSETS  Goldmetal - QuarterView 3D Action BE5
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719819
+    m_Localized: FONT  Netmarble - netmarbleB
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719820
+    m_Localized: MENU  Grieg - Anitra's Dance / Musopen Symphony Orchestra
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719821
+    m_Localized: Chopin - Nocturne No. 1, Op. 9 / Vadim Chaimovich
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719822
+    m_Localized: Chopin - Prelude Op. 28 No. 17
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719823
+    m_Localized: Bach - Goldberg Variations, Aria
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719824
+    m_Localized: Beethoven - Pathetique Sonata, II. Adagio cantabile
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719825
+    m_Localized: Bach - Prelude BWV 846 / Kimiko Ishizaka
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719826
+    m_Localized: Chopin - Nocturne No. 2, Op. 9
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719827
+    m_Localized: Satie - Gymnopedie No. 1 / Teknopazzo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1339719828
+    m_Localized: SFX  Goldmetal Studio - Undead Survivor / Win, Melee1
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

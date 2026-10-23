@@ -36,12 +36,14 @@ public static class PlayerProfile
 
     public static string Normalize(string value)
     {
-        string name = (value ?? string.Empty)
-            .Replace("<u>", string.Empty)
-            .Replace("</u>", string.Empty)
-            .Trim();
-        if (name.Length > 14)
-            name = name.Substring(0, 14);
+        var clean = new System.Text.StringBuilder(14);
+        foreach (char c in value ?? string.Empty) {
+            if (char.IsControl(c) || char.IsSurrogate(c) || c == '<' || c == '>' ||
+                char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.Format) continue;
+            if (clean.Length >= 14) break;
+            clean.Append(c);
+        }
+        string name = clean.ToString().Trim();
         return string.IsNullOrWhiteSpace(name) ? "PLAYER" : name;
     }
 }

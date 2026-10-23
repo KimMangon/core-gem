@@ -9,9 +9,21 @@ public class Stage5BallLauncher : MonoBehaviour
     [SerializeField] private Transform muzzle;
     [SerializeField] private Vector3 downhillDirection = new(-0.2f, 0f, -1f);
     [SerializeField] private float shotInterval = 3.5f;
+    [SerializeField] private Vector2 randomShotInterval;
     [SerializeField] private float launchSpeed = 18f;
     [SerializeField] private float yawSpreadDegrees = 16f;
+    [SerializeField] private bool useCustomYawRange;
+    [SerializeField] private Vector2 customYawRange;
     [SerializeField] private Vector2 upwardPitchRange = new(7f, 13f);
+    [SerializeField] private int activeSection = 5;
+    [SerializeField] private float initialDelay = 2f;
+    public int ActiveSection => activeSection;
+    private bool disabledByControl;
+    public void SetControlDisabled(bool value)
+    {
+        disabledByControl = value;
+        if (value) nextShotAt = 0d;
+    }
 
     private double nextShotAt;
 
@@ -43,6 +55,7 @@ public class Stage5BallLauncher : MonoBehaviour
         body.linearVelocity = saved.body.velocity;
         body.angularVelocity = saved.body.angularVelocity;
         projectile.GetComponent<Stage5Projectile>()?.RestoreLifetime(saved.remainingLifetime);
+        projectile.GetComponent<Stage5Projectile>()?.RestoreHealth(saved.health);
         body.WakeUp();
     }
 
@@ -56,18 +69,27 @@ public class Stage5BallLauncher : MonoBehaviour
         NetworkManager network = NetworkManager.Singleton;
         if (network == null || !network.IsListening || !network.IsServer ||
             StageManager.Instance == null || !StageManager.Instance.IsGameStarted ||
-            StageManager.Instance.CurrentSection != 5 ||
-            projectilePrefab == null || muzzle == null)
+            StageManager.Instance.CurrentSection != activeSection ||
+            StageManager.Instance.RoomTimerFinished ||
+            disabledByControl || projectilePrefab == null || muzzle == null)
+        {
+            nextShotAt = 0d;
             return;
+        }
 
         double now = SynchronizedTime();
         if (nextShotAt <= 0d)
-            nextShotAt = now + 2d;
+            nextShotAt = now + initialDelay;
         if (now < nextShotAt)
             return;
 
-        nextShotAt = now + Mathf.Max(0.5f, shotInterval);
-        float yaw = Random.Range(-yawSpreadDegrees, yawSpreadDegrees);
+        Vector2 intervalRange = activeSection == 8 ? new Vector2(1.6f, 2.3f) : randomShotInterval;
+        float interval = intervalRange.x > 0f && intervalRange.y >= intervalRange.x
+            ? Random.Range(intervalRange.x, intervalRange.y) : shotInterval;
+        nextShotAt = now + Mathf.Max(0.5f, interval);
+        float yaw = useCustomYawRange
+            ? Random.Range(Mathf.Min(customYawRange.x,customYawRange.y),Mathf.Max(customYawRange.x,customYawRange.y))
+            : Random.Range(-yawSpreadDegrees, yawSpreadDegrees);
         float pitch = Random.Range(upwardPitchRange.x, upwardPitchRange.y);
         Vector3 orientedDownhill = transform.TransformDirection(downhillDirection);
         Vector3 horizontal = Quaternion.AngleAxis(yaw, Vector3.up) *

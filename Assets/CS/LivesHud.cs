@@ -10,7 +10,9 @@ public class LivesHud : MonoBehaviour
 
     private void Awake()
     {
+        GameLocalization.Changed += InvalidateLanguage;
         livesText = GetComponent<Text>();
+        GameLocalization.Style(livesText);
         SetDisplayedLives(-1);
     }
 
@@ -31,6 +33,9 @@ public class LivesHud : MonoBehaviour
         SetDisplayedLives(lives);
     }
 
+    private void InvalidateLanguage() => displayedLives = int.MinValue;
+    private void OnDestroy() => GameLocalization.Changed -= InvalidateLanguage;
+
     private void SetDisplayedLives(int lives)
     {
         if (displayedLives == lives)
@@ -38,6 +43,6 @@ public class LivesHud : MonoBehaviour
 
         displayedLives = lives;
         livesText.enabled = lives >= 0;
-        livesText.text = lives < 0 ? "Lives: --" : $"Lives: {lives}";
+        livesText.text = GameLocalization.T("Lives: {0}", lives < 0 ? "--" : lives.ToString());
     }
 }

@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 7627545717889906154}
   - component: {fileID: 7788132356658087256}
   - component: {fileID: 6199152262044131402}
+  - component: {fileID: 4802471001019309289}
   m_Layer: 0
   m_Name: Boulder
   m_TagString: Untagged
@@ -255,3 +256,17 @@ MonoBehaviour:
   baseDiameter: 2.4
   sizePerPlayer: 1.1
   soloSizeMultiplier: 1.6
+--- !u!114 &4802471001019309289
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1510294044427679827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 340fd9bbd9e9c6c4087b71605df0dcee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoulderHealth
+  ShowTopMostFoldoutHeaderGroup: 1
+  maximumHealth: 5

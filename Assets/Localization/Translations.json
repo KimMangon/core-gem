@@ -1,0 +1,910 @@
+{
+  "entries": [
+    {
+      "key": "Host",
+      "en": "Host",
+      "ko": "방 만들기",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "Join",
+      "en": "Join",
+      "ko": "방 참가",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "Confirm",
+      "en": "Confirm",
+      "ko": "확인",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "Enter text...",
+      "en": "Enter text...",
+      "ko": "방 코드 입력",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "MAIN MENU",
+      "en": "MAIN MENU",
+      "ko": "메인 메뉴",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "Quit",
+      "en": "Quit",
+      "ko": "종료",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "QUIT",
+      "en": "QUIT",
+      "ko": "종료",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "SETTINGS",
+      "en": "SETTINGS",
+      "ko": "설정",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "CONTINUE",
+      "en": "CONTINUE",
+      "ko": "이어하기",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "SAVE",
+      "en": "SAVE",
+      "ko": "저장",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "BACK",
+      "en": "BACK",
+      "ko": "뒤로",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "CANCEL",
+      "en": "CANCEL",
+      "ko": "취소",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "DELETE",
+      "en": "DELETE",
+      "ko": "삭제",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "PREV",
+      "en": "PREV",
+      "ko": "이전",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "NEXT",
+      "en": "NEXT",
+      "ko": "다음",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "WAITING ROOM",
+      "en": "WAITING ROOM",
+      "ko": "대기실",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "ROOM CODE",
+      "en": "ROOM CODE",
+      "ko": "방 코드",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "COPY",
+      "en": "COPY",
+      "ko": "복사",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "COPIED",
+      "en": "COPIED",
+      "ko": "복사됨",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "PLAYERS",
+      "en": "PLAYERS",
+      "ko": "플레이어",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "PLAYER NAME",
+      "en": "PLAYER NAME",
+      "ko": "닉네임",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "PLAYER COLOR  /  {0}",
+      "en": "PLAYER COLOR  /  {0}",
+      "ko": "플레이어 색상  /  {0}",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "PLAY TUTORIAL",
+      "en": "PLAY TUTORIAL",
+      "ko": "튜토리얼 플레이",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "START GAME",
+      "en": "START GAME",
+      "ko": "게임 시작",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "CONTINUE GAME",
+      "en": "CONTINUE GAME",
+      "ko": "게임 이어하기",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "LEAVE ROOM",
+      "en": "LEAVE ROOM",
+      "ko": "방 나가기",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "CONNECTING...",
+      "en": "CONNECTING...",
+      "ko": "연결 중...",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "WAITING FOR PLAYERS",
+      "en": "WAITING FOR PLAYERS",
+      "ko": "플레이어 대기 중",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "WAITING FOR PLAYERS...",
+      "en": "WAITING FOR PLAYERS...",
+      "ko": "플레이어 대기 중...",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "WAITING FOR HOST",
+      "en": "WAITING FOR HOST",
+      "ko": "방장 대기 중",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "ORIGINAL TEAM READY",
+      "en": "ORIGINAL TEAM READY",
+      "ko": "기존 팀 준비 완료",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "WAITING FOR ORIGINAL PLAYERS",
+      "en": "WAITING FOR ORIGINAL PLAYERS",
+      "ko": "기존 팀원 대기 중",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "PREPARING RESOURCES  {0}%",
+      "en": "PREPARING RESOURCES  {0}%",
+      "ko": "리소스 로딩 중  {0}%",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "PLAYER {0}",
+      "en": "PLAYER {0}",
+      "ko": "플레이어 {0}",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "{0} (HOST)",
+      "en": "{0} (HOST)",
+      "ko": "{0} (방장)",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "WAITING: {0}",
+      "en": "WAITING: {0}",
+      "ko": "대기 중: {0}",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "ROOM FULL",
+      "en": "ROOM FULL",
+      "ko": "방이 가득 찼습니다",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "COULD NOT CREATE ROOM",
+      "en": "COULD NOT CREATE ROOM",
+      "ko": "방을 만들 수 없습니다",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "COULD NOT JOIN ROOM",
+      "en": "COULD NOT JOIN ROOM",
+      "ko": "방에 참가할 수 없습니다",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "ENTER A 6-CHARACTER ROOM CODE",
+      "en": "ENTER A 6-CHARACTER ROOM CODE",
+      "ko": "6자리 방 코드를 입력하세요",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "COULD NOT CONTINUE ROOM",
+      "en": "COULD NOT CONTINUE ROOM",
+      "ko": "방을 이어할 수 없습니다",
+      "context": "메뉴 및 방"
+    },
+    {
+      "key": "LANGUAGE",
+      "en": "LANGUAGE",
+      "ko": "언어",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "MASTER VOLUME",
+      "en": "MASTER VOLUME",
+      "ko": "전체 음량",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "BGM VOLUME",
+      "en": "BGM VOLUME",
+      "ko": "배경음 음량",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "SFX VOLUME",
+      "en": "SFX VOLUME",
+      "ko": "효과음 음량",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "MOUSE SPEED",
+      "en": "MOUSE SPEED",
+      "ko": "마우스 감도",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "FULLSCREEN",
+      "en": "FULLSCREEN",
+      "ko": "전체 화면",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "RESOLUTION",
+      "en": "RESOLUTION",
+      "ko": "해상도",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "CONTROL HINTS",
+      "en": "CONTROL HINTS",
+      "ko": "조작 안내",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "ON",
+      "en": "ON",
+      "ko": "켜기",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "OFF",
+      "en": "OFF",
+      "ko": "끄기",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "KEY SETTINGS",
+      "en": "KEY SETTINGS",
+      "ko": "키 설정",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "MOVE FORWARD",
+      "en": "MOVE FORWARD",
+      "ko": "앞으로 이동",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "MOVE BACK",
+      "en": "MOVE BACK",
+      "ko": "뒤로 이동",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "MOVE LEFT",
+      "en": "MOVE LEFT",
+      "ko": "왼쪽으로 이동",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "MOVE RIGHT",
+      "en": "MOVE RIGHT",
+      "ko": "오른쪽으로 이동",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "SPRINT",
+      "en": "SPRINT",
+      "ko": "달리기",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "JUMP",
+      "en": "JUMP",
+      "ko": "점프",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "PUSH",
+      "en": "PUSH",
+      "ko": "밀기",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "GESTURE",
+      "en": "GESTURE",
+      "ko": "제스처",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "KICK",
+      "en": "KICK",
+      "ko": "발차기",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "RESPAWN",
+      "en": "RESPAWN",
+      "ko": "다시 태어나기",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "RELOAD",
+      "en": "RELOAD",
+      "ko": "재장전",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "CLICK A CONTROL TO CHANGE IT",
+      "en": "CLICK A CONTROL TO CHANGE IT",
+      "ko": "변경할 조작을 클릭하세요",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "PRESS A KEY OR MOUSE BUTTON  /  ESC CANCELS",
+      "en": "PRESS A KEY OR MOUSE BUTTON  /  ESC CANCELS",
+      "ko": "키나 마우스 버튼을 누르세요  /  ESC 취소",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "PRESS KEY",
+      "en": "PRESS KEY",
+      "ko": "키 입력",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "KEY CHANGE CANCELLED",
+      "en": "KEY CHANGE CANCELLED",
+      "ko": "키 변경 취소됨",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "THAT KEY IS RESERVED  /  PRESS ANOTHER",
+      "en": "THAT KEY IS RESERVED  /  PRESS ANOTHER",
+      "ko": "사용할 수 없는 키입니다  /  다른 키를 누르세요",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "CONTROL UPDATED",
+      "en": "CONTROL UPDATED",
+      "ko": "조작 변경 완료",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "DEFAULT CONTROLS RESTORED",
+      "en": "DEFAULT CONTROLS RESTORED",
+      "ko": "기본 조작으로 복원됨",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "RESET DEFAULTS",
+      "en": "RESET DEFAULTS",
+      "ko": "기본값 복원",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "MOUSE LEFT",
+      "en": "MOUSE LEFT",
+      "ko": "마우스 왼쪽",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "MOUSE RIGHT",
+      "en": "MOUSE RIGHT",
+      "ko": "마우스 오른쪽",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "MOUSE MIDDLE",
+      "en": "MOUSE MIDDLE",
+      "ko": "마우스 가운데",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "SHIFT",
+      "en": "SHIFT",
+      "ko": "시프트",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "RIGHT SHIFT",
+      "en": "RIGHT SHIFT",
+      "ko": "오른쪽 시프트",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "SPACE",
+      "en": "SPACE",
+      "ko": "스페이스",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "UP",
+      "en": "UP",
+      "ko": "위쪽 화살표",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "DOWN",
+      "en": "DOWN",
+      "ko": "아래쪽 화살표",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "LEFT",
+      "en": "LEFT",
+      "ko": "왼쪽 화살표",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "RIGHT",
+      "en": "RIGHT",
+      "ko": "오른쪽 화살표",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "CONTROLS",
+      "en": "CONTROLS",
+      "ko": "조작법",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "FORWARD",
+      "en": "FORWARD",
+      "ko": "앞으로 이동",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "BACKWARD",
+      "en": "BACKWARD",
+      "ko": "뒤로 이동",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "MOUSE  LOOK",
+      "en": "MOUSE  LOOK",
+      "ko": "마우스로 시점 조작",
+      "context": "설정 및 키 안내"
+    },
+    {
+      "key": "SAVED ROOMS",
+      "en": "SAVED ROOMS",
+      "ko": "저장된 방",
+      "context": "저장"
+    },
+    {
+      "key": "DELETE SAVED ROOM?",
+      "en": "DELETE SAVED ROOM?",
+      "ko": "저장된 방을 삭제할까요?",
+      "context": "저장"
+    },
+    {
+      "key": "THIS CANNOT BE UNDONE",
+      "en": "THIS CANNOT BE UNDONE",
+      "ko": "삭제하면 되돌릴 수 없습니다",
+      "context": "저장"
+    },
+    {
+      "key": "NO SAVED ROOMS",
+      "en": "NO SAVED ROOMS",
+      "ko": "저장된 방이 없습니다",
+      "context": "저장"
+    },
+    {
+      "key": "SELECT A ROOM TO CONTINUE",
+      "en": "SELECT A ROOM TO CONTINUE",
+      "ko": "이어할 방을 선택하세요",
+      "context": "저장"
+    },
+    {
+      "key": "SAVED ROOM",
+      "en": "SAVED ROOM",
+      "ko": "저장된 방",
+      "context": "저장"
+    },
+    {
+      "key": "{0}  /  CHECKPOINT {1}  /  {2}\n{3}",
+      "en": "{0}  /  CHECKPOINT {1}  /  {2}\n{3}",
+      "ko": "{0}  /  체크포인트 {1}  /  {2}\n{3}",
+      "context": "저장"
+    },
+    {
+      "key": "ROOM SELECTED",
+      "en": "ROOM SELECTED",
+      "ko": "방 선택됨",
+      "context": "저장"
+    },
+    {
+      "key": "COULD NOT SIGN IN",
+      "en": "COULD NOT SIGN IN",
+      "ko": "로그인할 수 없습니다",
+      "context": "저장"
+    },
+    {
+      "key": "THIS HOST IS NOT IN THAT ROOM",
+      "en": "THIS HOST IS NOT IN THAT ROOM",
+      "ko": "이 방의 기존 팀원이 아닙니다",
+      "context": "저장"
+    },
+    {
+      "key": "ROOM EXCEEDS 4 PLAYERS",
+      "en": "ROOM EXCEEDS 4 PLAYERS",
+      "ko": "방 정원 4명을 초과했습니다",
+      "context": "저장"
+    },
+    {
+      "key": "COULD NOT DELETE ROOM",
+      "en": "COULD NOT DELETE ROOM",
+      "ko": "방을 삭제할 수 없습니다",
+      "context": "저장"
+    },
+    {
+      "key": "ROOM DELETED",
+      "en": "ROOM DELETED",
+      "ko": "방 삭제됨",
+      "context": "저장"
+    },
+    {
+      "key": "ROOM SAVED",
+      "en": "ROOM SAVED",
+      "ko": "방 저장됨",
+      "context": "저장"
+    },
+    {
+      "key": "COULD NOT SAVE ROOM",
+      "en": "COULD NOT SAVE ROOM",
+      "ko": "방을 저장할 수 없습니다",
+      "context": "저장"
+    },
+    {
+      "key": "FIST",
+      "en": "FIST",
+      "ko": "주먹",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "HANDGUN",
+      "en": "HANDGUN",
+      "ko": "권총",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "RELOADING",
+      "en": "RELOADING",
+      "ko": "재장전 중",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "BOULDER  {0} / {1}",
+      "en": "BOULDER  {0} / {1}",
+      "ko": "돌 체력  {0} / {1}",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "PLAY TIME",
+      "en": "PLAY TIME",
+      "ko": "플레이 시간",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "FINISH TIME",
+      "en": "FINISH TIME",
+      "ko": "클리어 시간",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "GOAL",
+      "en": "GOAL",
+      "ko": "목표",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "CLEAR",
+      "en": "CLEAR",
+      "ko": "클리어",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "DIFFICULTY",
+      "en": "DIFFICULTY",
+      "ko": "난이도",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "DIFFICULTY  {0} PLAYER",
+      "en": "DIFFICULTY  {0} PLAYER",
+      "ko": "난이도  {0}인",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "DIFFICULTY  {0} PLAYERS",
+      "en": "DIFFICULTY  {0} PLAYERS",
+      "ko": "난이도  {0}인",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "TIME",
+      "en": "TIME",
+      "ko": "시간",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "RANK",
+      "en": "RANK",
+      "ko": "등급",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "RANK  {0}",
+      "en": "RANK  {0}",
+      "ko": "최종 등급  {0}",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "AVERAGE",
+      "en": "AVERAGE",
+      "ko": "평균",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "AVERAGE  {0} / 5",
+      "en": "AVERAGE  {0} / 5",
+      "ko": "평균  {0} / 5",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "  ({0}/8 RECORDED)",
+      "en": "  ({0}/8 RECORDED)",
+      "ko": "  ({0}/8 기록됨)",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "STAGE",
+      "en": "STAGE",
+      "ko": "스테이지",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "STAGE {0}",
+      "en": "STAGE {0}",
+      "ko": "스테이지 {0}",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "POINTS",
+      "en": "POINTS",
+      "ko": "점수",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "Lives",
+      "en": "Lives",
+      "ko": "목숨",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "Lives: {0}",
+      "en": "Lives: {0}",
+      "ko": "목숨: {0}",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "TimeLimit",
+      "en": "TimeLimit",
+      "ko": "제한 시간",
+      "context": "게임 화면 및 결과"
+    },
+    {
+      "key": "SHOOT THE RED TRAP  /  3 HITS",
+      "en": "SHOOT THE RED TRAP  /  3 HITS",
+      "ko": "빨간 함정을 쏘세요  /  3발",
+      "context": "튜토리얼"
+    },
+    {
+      "key": "TRAP DISABLED!  PUSH THE BOULDER FORWARD",
+      "en": "TRAP DISABLED!  PUSH THE BOULDER FORWARD",
+      "ko": "함정 정지!  돌을 앞으로 미세요",
+      "context": "튜토리얼"
+    },
+    {
+      "key": "SHOOT THE MONSTER!  PROTECT THE BOULDER",
+      "en": "SHOOT THE MONSTER!  PROTECT THE BOULDER",
+      "ko": "몬스터를 쏘세요!  돌을 지키세요",
+      "context": "튜토리얼"
+    },
+    {
+      "key": "TRAINING COMPLETE!  PUSH THE BOULDER TO THE GOAL",
+      "en": "TRAINING COMPLETE!  PUSH THE BOULDER TO THE GOAL",
+      "ko": "튜토리얼 완료!  돌을 목표까지 미세요",
+      "context": "튜토리얼"
+    },
+    {
+      "key": "2: EQUIP GUN     LEFT CLICK: FIRE     {0}: RELOAD",
+      "en": "2: EQUIP GUN     LEFT CLICK: FIRE     {0}: RELOAD",
+      "ko": "2: 권총 장착     왼쪽 클릭: 발사     {0}: 재장전",
+      "context": "튜토리얼"
+    },
+    {
+      "key": "SHOOT",
+      "en": "SHOOT",
+      "ko": "쏘세요",
+      "context": "튜토리얼"
+    },
+    {
+      "key": "BLUE",
+      "en": "BLUE",
+      "ko": "파랑",
+      "context": "색상"
+    },
+    {
+      "key": "RED",
+      "en": "RED",
+      "ko": "빨강",
+      "context": "색상"
+    },
+    {
+      "key": "ORANGE",
+      "en": "ORANGE",
+      "ko": "주황",
+      "context": "색상"
+    },
+    {
+      "key": "YELLOW",
+      "en": "YELLOW",
+      "ko": "노랑",
+      "context": "색상"
+    },
+    {
+      "key": "GREEN",
+      "en": "GREEN",
+      "ko": "초록",
+      "context": "색상"
+    },
+    {
+      "key": "CYAN",
+      "en": "CYAN",
+      "ko": "하늘색",
+      "context": "색상"
+    },
+    {
+      "key": "PURPLE",
+      "en": "PURPLE",
+      "ko": "보라",
+      "context": "색상"
+    },
+    {
+      "key": "PINK",
+      "en": "PINK",
+      "ko": "분홍",
+      "context": "색상"
+    },
+    {
+      "key": "CREDITS",
+      "en": "CREDITS",
+      "ko": "CREDITS",
+      "context": "크레딧"
+    },
+    {
+      "key": "SOURCE",
+      "en": "SOURCE",
+      "ko": "SOURCE",
+      "context": "크레딧"
+    },
+    {
+      "key": "SOURCE opens the original page",
+      "en": "SOURCE opens the original page",
+      "ko": "SOURCE opens the original page",
+      "context": "크레딧"
+    },
+    {
+      "key": "3D ASSETS  Goldmetal - QuarterView 3D Action BE5",
+      "en": "3D ASSETS  Goldmetal - QuarterView 3D Action BE5",
+      "ko": "3D ASSETS  Goldmetal - QuarterView 3D Action BE5",
+      "context": "크레딧"
+    },
+    {
+      "key": "FONT  Netmarble - netmarbleB",
+      "en": "FONT  Netmarble - netmarbleB",
+      "ko": "FONT  Netmarble - netmarbleB",
+      "context": "크레딧"
+    },
+    {
+      "key": "MENU  Grieg - Anitra's Dance / Musopen Symphony Orchestra",
+      "en": "MENU  Grieg - Anitra's Dance / Musopen Symphony Orchestra",
+      "ko": "MENU  Grieg - Anitra's Dance / Musopen Symphony Orchestra",
+      "context": "크레딧"
+    },
+    {
+      "key": "Chopin - Nocturne No. 1, Op. 9 / Vadim Chaimovich",
+      "en": "Chopin - Nocturne No. 1, Op. 9 / Vadim Chaimovich",
+      "ko": "Chopin - Nocturne No. 1, Op. 9 / Vadim Chaimovich",
+      "context": "크레딧"
+    },
+    {
+      "key": "Chopin - Prelude Op. 28 No. 17",
+      "en": "Chopin - Prelude Op. 28 No. 17",
+      "ko": "Chopin - Prelude Op. 28 No. 17",
+      "context": "크레딧"
+    },
+    {
+      "key": "Bach - Goldberg Variations, Aria",
+      "en": "Bach - Goldberg Variations, Aria",
+      "ko": "Bach - Goldberg Variations, Aria",
+      "context": "크레딧"
+    },
+    {
+      "key": "Beethoven - Pathetique Sonata, II. Adagio cantabile",
+      "en": "Beethoven - Pathetique Sonata, II. Adagio cantabile",
+      "ko": "Beethoven - Pathetique Sonata, II. Adagio cantabile",
+      "context": "크레딧"
+    },
+    {
+      "key": "Bach - Prelude BWV 846 / Kimiko Ishizaka",
+      "en": "Bach - Prelude BWV 846 / Kimiko Ishizaka",
+      "ko": "Bach - Prelude BWV 846 / Kimiko Ishizaka",
+      "context": "크레딧"
+    },
+    {
+      "key": "Chopin - Nocturne No. 2, Op. 9",
+      "en": "Chopin - Nocturne No. 2, Op. 9",
+      "ko": "Chopin - Nocturne No. 2, Op. 9",
+      "context": "크레딧"
+    },
+    {
+      "key": "Satie - Gymnopedie No. 1 / Teknopazzo",
+      "en": "Satie - Gymnopedie No. 1 / Teknopazzo",
+      "ko": "Satie - Gymnopedie No. 1 / Teknopazzo",
+      "context": "크레딧"
+    },
+    {
+      "key": "SFX  Goldmetal Studio - Undead Survivor / Win, Melee1",
+      "en": "SFX  Goldmetal Studio - Undead Survivor / Win, Melee1",
+      "ko": "SFX  Goldmetal Studio - Undead Survivor / Win, Melee1",
+      "context": "크레딧"
+    }
+  ]
+}

@@ -249,3 +249,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   maxLifetime: 10
   boulderImpactImpulse: 10
+  activeSection: 5
+  boulderDamage: 0
+  slowSpeedThreshold: 2
+  slowDespawnSeconds: 3

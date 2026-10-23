@@ -15,6 +15,8 @@ public class TutorialGoalTrigger : MonoBehaviour
             manager == null || !manager.IsTutorialStage)
             return;
         Rigidbody body = other.attachedRigidbody;
+        TutorialCombatLesson lesson = FindFirstObjectByType<TutorialCombatLesson>();
+        if (lesson != null && !lesson.CanFinish) return;
         if (body != null && body.GetComponent<BoulderSlopeDrag>() != null)
             manager.CompleteTutorial();
     }

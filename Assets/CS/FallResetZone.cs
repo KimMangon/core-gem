@@ -31,6 +31,13 @@ public class FallResetZone : MonoBehaviour
         ResetNetworkBody(player.GetComponent<Rigidbody>(), respawnPosition);
     }
 
+    public void RespawnBoulder(BoulderSlopeDrag boulder)
+    {
+        NetworkManager manager = NetworkManager.Singleton;
+        if (manager == null || !manager.IsServer || boulder == null) return;
+        ResetNetworkBody(boulder.GetComponent<Rigidbody>(), boulderRespawnPosition);
+    }
+
     private void ResetIfFallen(Collider other)
     {
         NetworkManager manager = NetworkManager.Singleton;
@@ -46,27 +53,33 @@ public class FallResetZone : MonoBehaviour
             target.GetComponent<BoulderSlopeDrag>() == null)
             return;
 
-        Vector3 destination = target.GetComponent<BoulderSlopeDrag>() != null
+        bool isBoulder = target.GetComponent<BoulderSlopeDrag>() != null;
+        Vector3 destination = isBoulder
             ? boulderRespawnPosition
             : respawnPosition;
-        ResetNetworkBody(body, destination);
+        if (ResetNetworkBody(body, destination) && isBoulder)
+        {
+            target.GetComponent<BoulderHealth>()?.ResetAfterFall();
+            MonsterSpawnZone.ResetAllForRetry();
+        }
     }
 
-    private static void ResetNetworkBody(Rigidbody body, Vector3 destination)
+    private static bool ResetNetworkBody(Rigidbody body, Vector3 destination)
     {
         if (body == null || body.isKinematic)
-            return;
+            return false;
 
         GameObject target = body.gameObject;
         NetworkObject networkObject = target.GetComponent<NetworkObject>();
         NetworkTransform networkTransform = target.GetComponent<NetworkTransform>();
         if (networkObject == null || !networkObject.IsSpawned || networkTransform == null)
-            return;
+            return false;
 
         body.linearVelocity = Vector3.zero;
         body.angularVelocity = Vector3.zero;
         body.position = destination;
         networkTransform.Teleport(destination, body.rotation, target.transform.localScale);
         body.WakeUp();
+        return true;
     }
 }
