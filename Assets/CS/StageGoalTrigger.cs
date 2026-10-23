@@ -25,16 +25,23 @@ public class StageGoalTrigger : MonoBehaviour
             stageManager = FindFirstObjectByType<StageManager>();
         if (stageManager == null)
             return;
+        if (!stageManager.IsGameStarted)
+            return;
 
+        Vector3 sectionOffset = StageManager.GetSectionOffset(stageToComplete);
         if (stageToComplete == 1 && body.position.z >= finishZ)
             stageManager.CompleteStageOne();
-        else if (stageToComplete == 2 && body.position.x >= finishX)
+        else if (stageToComplete == 2 && body.position.x >= finishX + sectionOffset.x)
             stageManager.CompleteStageTwo();
-        else if (stageToComplete == 3 && body.position.z >= finishZ)
+        else if (stageToComplete == 3 && body.position.z >= finishZ + sectionOffset.z)
             stageManager.CompleteStageThree();
-        else if (stageToComplete == 4 && body.position.z >= finishZ)
+        else if (stageToComplete == 4 && body.position.z >= finishZ + sectionOffset.z)
             stageManager.CompleteStageFour();
-        else if (stageToComplete == 5 && body.position.z >= finishZ)
+        else if (stageToComplete == 5 && body.position.z >= finishZ + sectionOffset.z)
             stageManager.CompleteStageFive();
+        else if (stageToComplete == 6 && body.position.z >= finishZ + sectionOffset.z)
+            stageManager.CompleteStageSix();
+        else if (stageToComplete == 7 && body.position.z >= finishZ)
+            stageManager.CompleteStageSeven();
     }
 }

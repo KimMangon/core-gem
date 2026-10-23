@@ -22,6 +22,8 @@ public class PlayerEyes : NetworkBehaviour
     public bool ContainsEye(Transform target) =>
         eyeRoot != null && target != null && target.IsChildOf(eyeRoot);
 
+    public float CurrentPitch => lookPitch.Value;
+
     private void Awake()
     {
         playerLook = GetComponent<PlayerLook>();

@@ -15,6 +15,14 @@ public class PlayerLook : NetworkBehaviour
     public float Yaw => yaw;
     public float Pitch => pitch;
 
+    public void RestoreView(float savedYaw, float savedPitch)
+    {
+        if (!IsOwner)
+            return;
+        yaw = savedYaw;
+        pitch = Mathf.Clamp(savedPitch, pitchMin, pitchMax);
+    }
+
     public override void OnNetworkSpawn()
     {
         if (!IsOwner)
@@ -26,13 +34,21 @@ public class PlayerLook : NetworkBehaviour
         yaw = transform.eulerAngles.y;
         pitch = Mathf.DeltaAngle(0f, cameraTransform.localEulerAngles.x);
         cameraLocalPosition = cameraTransform.localPosition;
-        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.lockState = StageManager.Instance != null && StageManager.Instance.IsGameStarted
+            ? CursorLockMode.Locked : CursorLockMode.None;
     }
 
     private void Update()
     {
         if (!IsOwner || Keyboard.current == null || Mouse.current == null)
             return;
+
+        if (StageManager.Instance == null || !StageManager.Instance.IsGameStarted)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            return;
+        }
 
         bool altHeld = Keyboard.current.altKey.isPressed || PauseManager.IsPaused;
         if (altHeld)

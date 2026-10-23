@@ -22,6 +22,15 @@ public class FallResetZone : MonoBehaviour
 
     private void OnTriggerStay(Collider other) => ResetIfFallen(other);
 
+    public void RespawnPlayer(PlayerMovement player)
+    {
+        NetworkManager manager = NetworkManager.Singleton;
+        if (manager == null || !manager.IsServer || player == null)
+            return;
+
+        ResetNetworkBody(player.GetComponent<Rigidbody>(), respawnPosition);
+    }
+
     private void ResetIfFallen(Collider other)
     {
         NetworkManager manager = NetworkManager.Singleton;
@@ -37,6 +46,18 @@ public class FallResetZone : MonoBehaviour
             target.GetComponent<BoulderSlopeDrag>() == null)
             return;
 
+        Vector3 destination = target.GetComponent<BoulderSlopeDrag>() != null
+            ? boulderRespawnPosition
+            : respawnPosition;
+        ResetNetworkBody(body, destination);
+    }
+
+    private static void ResetNetworkBody(Rigidbody body, Vector3 destination)
+    {
+        if (body == null || body.isKinematic)
+            return;
+
+        GameObject target = body.gameObject;
         NetworkObject networkObject = target.GetComponent<NetworkObject>();
         NetworkTransform networkTransform = target.GetComponent<NetworkTransform>();
         if (networkObject == null || !networkObject.IsSpawned || networkTransform == null)
@@ -44,9 +65,6 @@ public class FallResetZone : MonoBehaviour
 
         body.linearVelocity = Vector3.zero;
         body.angularVelocity = Vector3.zero;
-        Vector3 destination = target.GetComponent<BoulderSlopeDrag>() != null
-            ? boulderRespawnPosition
-            : respawnPosition;
         body.position = destination;
         networkTransform.Teleport(destination, body.rotation, target.transform.localScale);
         body.WakeUp();

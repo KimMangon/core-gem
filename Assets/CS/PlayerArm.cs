@@ -57,6 +57,17 @@ public class PlayerArm : NetworkBehaviour
         if (!IsOwner || Mouse.current == null || Keyboard.current == null)
             return;
 
+        if (StageManager.Instance == null || !StageManager.Instance.IsGameStarted)
+        {
+            if (isPushing.Value)
+                isPushing.Value = false;
+            if (isGesturing.Value)
+                isGesturing.Value = false;
+            handTransform.localPosition = Vector3.Lerp(handTransform.localPosition,
+                restLocalPos, Time.deltaTime * handMoveSpeed);
+            return;
+        }
+
         if (Keyboard.current.altKey.isPressed || PauseManager.IsPaused)
         {
             if (isPushing.Value)
@@ -68,8 +79,8 @@ public class PlayerArm : NetworkBehaviour
             return;
         }
 
-        bool holding = Mouse.current.leftButton.isPressed;
-        bool gesturing = Mouse.current.rightButton.isPressed;
+        bool holding = GameKeyBindings.IsHeld(PlayerAction.Push);
+        bool gesturing = GameKeyBindings.IsHeld(PlayerAction.Gesture);
         if (isGesturing.Value != gesturing)
             isGesturing.Value = gesturing;
         if (middleFinger != null)

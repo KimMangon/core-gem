@@ -63,7 +63,7 @@ public class BoulderSlopeDrag : NetworkBehaviour
 
     private void UpdateSizeForPlayers()
     {
-        int playerCount = Mathf.Max(1, NetworkManager.ConnectedClientsIds.Count);
+        int playerCount = Mathf.Clamp(NetworkManager.ConnectedClientsIds.Count, 1, 2);
         if (playerCount == lastPlayerCount)
             return;
 

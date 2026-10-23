@@ -15,6 +15,37 @@ public class Stage5BallLauncher : MonoBehaviour
 
     private double nextShotAt;
 
+    public double SecondsUntilNextShot
+    {
+        get
+        {
+            double now = SynchronizedTime();
+            return nextShotAt <= 0d ? 2d : System.Math.Max(0d, nextShotAt - now);
+        }
+    }
+
+    public void RestoreShotDelay(double seconds)
+    {
+        nextShotAt = SynchronizedTime() + System.Math.Max(0d, seconds);
+    }
+
+    public void RestoreProjectile(SavedProjectileState saved)
+    {
+        NetworkManager network = NetworkManager.Singleton;
+        if (network == null || !network.IsServer || projectilePrefab == null ||
+            saved == null || saved.body == null)
+            return;
+        GameObject projectile = Instantiate(projectilePrefab,
+            saved.body.position, saved.body.rotation);
+        SceneManager.MoveGameObjectToScene(projectile, gameObject.scene);
+        projectile.GetComponent<NetworkObject>().Spawn();
+        Rigidbody body = projectile.GetComponent<Rigidbody>();
+        body.linearVelocity = saved.body.velocity;
+        body.angularVelocity = saved.body.angularVelocity;
+        projectile.GetComponent<Stage5Projectile>()?.RestoreLifetime(saved.remainingLifetime);
+        body.WakeUp();
+    }
+
     private void OnEnable()
     {
         nextShotAt = 0d;
@@ -24,10 +55,12 @@ public class Stage5BallLauncher : MonoBehaviour
     {
         NetworkManager network = NetworkManager.Singleton;
         if (network == null || !network.IsListening || !network.IsServer ||
+            StageManager.Instance == null || !StageManager.Instance.IsGameStarted ||
+            StageManager.Instance.CurrentSection != 5 ||
             projectilePrefab == null || muzzle == null)
             return;
 
-        double now = network.ServerTime.Time;
+        double now = SynchronizedTime();
         if (nextShotAt <= 0d)
             nextShotAt = now + 2d;
         if (now < nextShotAt)
@@ -49,5 +82,12 @@ public class Stage5BallLauncher : MonoBehaviour
         networkObject.Spawn();
         body.linearVelocity = direction * launchSpeed;
         body.WakeUp();
+    }
+
+    private static double SynchronizedTime()
+    {
+        StageManager stage = StageManager.Instance;
+        return stage != null ? stage.ObstacleTime :
+            NetworkManager.Singleton != null ? NetworkManager.Singleton.ServerTime.Time : 0d;
     }
 }

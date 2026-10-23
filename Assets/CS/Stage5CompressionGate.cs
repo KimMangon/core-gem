@@ -73,8 +73,8 @@ public class Stage5CompressionGate : MonoBehaviour
     private static double SynchronizedTime()
     {
         NetworkManager network = NetworkManager.Singleton;
-        return network != null && network.IsListening
-            ? network.ServerTime.Time
+        return network != null && network.IsListening && StageManager.Instance != null
+            ? StageManager.Instance.ObstacleTime
             : Time.fixedTimeAsDouble;
     }
 }

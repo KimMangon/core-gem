@@ -10,17 +10,28 @@ public class PauseManager : MonoBehaviour
 
     void Update()
     {
+        if (StageManager.Instance != null && StageManager.Instance.RoomTimerFinished)
+            return;
         if (Keyboard.current == null || !Keyboard.current.escapeKey.wasPressedThisFrame)
             return;
 
         if (GameSettingsMenu.Instance != null && GameSettingsMenu.Instance.IsOpen)
         {
-            GameSettingsMenu.Instance.Close();
+            if (GameSettingsMenu.Instance.IsWaitingForBinding)
+                GameSettingsMenu.Instance.CancelKeyCapture();
+            else
+                GameSettingsMenu.Instance.Close();
             return;
         }
 
         if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
             return;
+
+        if (StageManager.Instance != null && !StageManager.Instance.IsGameStarted)
+        {
+            GameSettingsMenu.Instance?.OpenFromLobby();
+            return;
+        }
 
         if (IsPaused) ClosePause();
         else OpenPause();

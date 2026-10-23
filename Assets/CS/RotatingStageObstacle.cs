@@ -23,8 +23,8 @@ public class RotatingStageObstacle : MonoBehaviour
     private void FixedUpdate()
     {
         NetworkManager network = NetworkManager.Singleton;
-        double time = network != null && network.IsListening
-            ? network.ServerTime.Time
+        double time = network != null && network.IsListening && StageManager.Instance != null
+            ? StageManager.Instance.ObstacleTime
             : Time.fixedTimeAsDouble;
         float angle = Mathf.Repeat((float)(time * degreesPerSecond) + phaseOffsetDegrees, 360f);
         body.MoveRotation(startingRotation * Quaternion.Euler(0f, angle, 0f));

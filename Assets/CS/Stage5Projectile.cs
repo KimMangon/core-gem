@@ -11,6 +11,16 @@ public class Stage5Projectile : NetworkBehaviour
     private Rigidbody body;
     private double expiresAt;
 
+    public double RemainingLifetime => IsServer && IsSpawned
+        ? System.Math.Max(0d, expiresAt - NetworkManager.ServerTime.Time) : 0d;
+
+    public void RestoreLifetime(double seconds)
+    {
+        if (IsServer && IsSpawned)
+            expiresAt = NetworkManager.ServerTime.Time +
+                System.Math.Min(maxLifetime, System.Math.Max(0d, seconds));
+    }
+
     public override void OnNetworkSpawn()
     {
         body = GetComponent<Rigidbody>();
